@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from reflecto.simulate.noise import add_noise
+from reflecto_exp.simulate.noise import add_noise
 
 class XRRAugmentations:
     """

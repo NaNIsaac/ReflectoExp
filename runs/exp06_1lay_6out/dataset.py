@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from reflecto.simulate.noise import add_noise
+from reflecto_exp.simulate.noise import add_noise
 
 class XRRPreprocessor:
     """
