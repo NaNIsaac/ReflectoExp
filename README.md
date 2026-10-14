@@ -25,7 +25,7 @@ Automated extraction of thin film parameters (thickness, roughness, electron den
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex
 
 # Clone Repository
-git clone https://github.com/SJB7777/reflecto
+git clone https://github.com/NaNIsaac/reflecto
 
 # Make virtual environment
 uv venv --python 3.13
