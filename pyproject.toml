@@ -73,6 +73,10 @@ docs = [
 
 # cu128: Blackwell(sm_120, RTX 50 시리즈) 지원. cu126 빌드는 sm_90까지만 지원하여
 # RTX 5070에서 "no kernel image is available for execution on the device"로 실패함.
+[project.urls]
+Homepage = "https://github.com/NaNIsaac/ReflectoExp"
+Repository = "https://github.com/NaNIsaac/ReflectoExp"
+
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"

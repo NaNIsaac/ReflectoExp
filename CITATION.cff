@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "ReflectoExp: Machine learning tools for X-ray reflectivity analysis"
+authors:
+  - family-names: Yong
+    given-names: Isaac
+    email: isaacyong@naver.com
+    affiliation: "Sogang University"
+repository-code: "https://github.com/NaNIsaac/ReflectoExp"
+abstract: "Deep learning for X-ray reflectivity (XRR) analysis: extracts thin-film parameters (thickness, roughness, electron density) from XRR measurements using CNNs trained on physics-based simulations."
+keywords:
+  - "X-ray reflectivity"
+  - "XRR"
+  - "deep learning"
+  - "thin films"
+  - "machine learning"
+version: "0.1.1"
+date-released: "2026-10-14"
