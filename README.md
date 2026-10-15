@@ -1,134 +1,61 @@
-# Reflecto: Deep Learning for X-ray Reflectivity Analysis
+# ReflectoExp
 
-Automated extraction of thin film parameters (thickness, roughness, electron density) from X-ray Reflectivity measurements using deep learning.
+Experiment scripts for training neural networks that predict thin-film thickness, roughness and SLD from X-ray reflectivity (XRR) curves, using GenX (and earlier refnx) simulations as training data.
 
----
+Each folder under `runs/` is one self-contained experiment (config, simulation, dataset, model, training, evaluation). Shared simulation and physics helpers live in the `reflecto_exp` package under `src/`. A later rewrite with on-the-fly simulation and a differentiable Abeles engine is [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn).
 
-## 🎯 Overview
+## Install
 
-**The Problem:**
-- Traditional XRR analysis relies on manual fitting
-- Time-consuming and requires expert knowledge
-- Sensitive to initial parameter guesses
-
-**Our Solution:**
-- Physics-based simulation for training data generation
-- End-to-end learning with CNN
-- Real-time analysis (seconds)
-
----
-## Preperation before use
-### Windows
+Uses [uv](https://docs.astral.sh/uv/) and Python 3.13. `torch` is pulled from the PyTorch CUDA 12.8 index.
 
 ```bash
-# Install uv
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex
-
-# Clone Repository
-git clone https://github.com/NaNIsaac/ReflectoExp
+git clone https://github.com/NaNIsaac/ReflectoExp.git
 cd ReflectoExp
-
-# Make virtual environment
-uv venv --python 3.13
-.venv/scripts/activate
-
-# Install packages
 uv sync
-uv run python -m ipykernel install --user --name=my-env --display-name="reflecto"
-uv pip install -e .
+uv pip install -e .     # pyproject has no build-system, so uv sync does not install reflecto_exp
 ```
----
 
-## 🚀 Quick Start
+The refnx-based experiments (exp02, exp03) also need `uv pip install refnx`, which is not a declared dependency.
+
+## Usage
+
+Experiment scripts import their siblings as top-level modules (`import config`, `import simulate`), so they are run from inside their folder. The root `main.py` does that for you:
 
 ```bash
-# Run entire pipeline (data generation → training → evaluation)
-python runs/exp05_1layer_mask/main.py
+uv run python main.py 7      # runs runs/exp07_fourier_hires/main.py with the .venv Python
 ```
 
-That's it! The script automatically handles data generation, model training, and evaluation.
+`main.py` of an experiment generates the HDF5 training set if it is missing, then trains and evaluates. Before running, set `base_dir` (and `exp_name`) in that experiment's `config.py`; the committed values are local Windows paths.
 
----
+## Experiments
 
-## 📁 Project Structure
+| Folder | What it tries |
+|---|---|
+| `exp01_quan_class` | multilayer parameters as quantized classes (imports modules that no longer exist in `reflecto_exp`; kept for reference) |
+| `exp02_one_layer` | single-layer regression on refnx simulations |
+| `exp03_physics_fused` | CNN prediction blended with a physics-based thickness estimate, experimental |
+| `exp04_one_genx` | single-layer regression on GenX simulations |
+| `exp05_1layer_mask` | single layer, valid-q mask as a second input channel, instrument augmentation; GenX fit started from the CNN guess |
+| `exp06_1lay_6out` | film + SiO2 native oxide (6 outputs) |
+| `exp07_fourier_hires` | 6 outputs, 2000-point q grid, Fourier features of q; `ablation.py` and `metrics_report.py` for component ablation and extended metrics |
+
+## Structure
 
 ```
-runs/
-├── exp01_quan_class/      # Classification approach for multi-layer
-├── exp02_one_layer/       # Regression for single layer (RefNX)
-├── exp03_physics_fused/   # Physics-guided learning (experimental)
-├── exp04_one_genx/        # Regression for single layer (GenX)
-├── exp05_1layer_mask/
-└── exp06_1lay_6out/
+src/reflecto_exp/
+  simulate/simul_genx.py      GenX-based XRR simulator (XRRSimulator, ParamSet)
+  simulate/simul_refnx.py     refnx-based simulator
+  simulate/noise.py           Poisson and background noise
+  simulate/torch_engine/      PyTorch Abeles / kinematical reflectivity, smearing
+  physics_utils.py            unit conversions (tth2q, ...)
+runs/expNN_*/                 experiments
+notebooks/                    function tests
 ```
 
-**Each experiment contains:**
-- `config.py` - Experiment settings
-- `main.py` - Full pipeline runner
-- `model.py` - Neural network architecture
-- `evaluate.py` - Performance analysis
+## Citation
 
----
+See [CITATION.cff](CITATION.cff).
 
-## ⚙️ Configuration
+## License
 
-Edit `config.py` to customize:
-
-```python
-CONFIG = {
-    "param_ranges": {
-        "thickness": (20.0, 200.0),  # Å
-        "roughness": (0.0, 10.0),    # Å
-        "sld": (0.0, 140.0),         # 1e-6 Å^-2
-    },
-    "simulation": {
-        "n_samples": 1_000_000,
-        "q_points": 200,
-    },
-    "training": {
-        "batch_size": 128,
-        "epochs": 50,
-        "lr": 0.001,
-    }
-}
-```
-
----
-
-## 🔬 Experiments Comparison (Keep develping)
-
-| Experiment | Target | Approach | Best For |
-|------------|--------|----------|----------|
-| exp01 | Multi-layer | Classification | Fast screening |
-| exp02/04 | Single layer | Regression | High accuracy |
-| exp03 | Multi-layer | Physics-fused | Interpretability |
-
-**Recommendation:** Start with **exp02** or **exp04** for single-layer analysis.
-
----
-
-## 📊 Performance
-
-Typical results on simulated data (single layer):
-- Thickness: MAE ~2Å
-- Roughness: MAE ~1Å
-- SLD: MAE ~0.15 (×10⁻⁶ Å⁻²)
-
----
-
-## 🔧 Key Features
-
-**Simulation:**
-- RefNX/GenX-based XRR generation
-- Realistic noise models (Poisson + background)
-- Physical constraints enforcement
-
-**Training:**
-- Automatic checkpoint management
-- Mixed precision support
-- Resume from interruption
-
-**Evaluation:**
-- Comprehensive metrics (MAE, RMSE)
-- Visualization tools (parity plots, error distribution)
-- Real experimental data support
+MIT, see [LICENSE](LICENSE).
