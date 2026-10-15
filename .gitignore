@@ -13,3 +13,6 @@ wheels/
 
 *.db
 .codigest/
+
+# Outdated analysis notes (local only)
+docs/exp02_vs_exp07_report.md
