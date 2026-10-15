@@ -3,7 +3,7 @@ name = "reflecto_exp"
 version = "0.1.1"
 description = "Machine learning tools for X-ray reflectivity analysis"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 authors = [
     {name = "Isaac Yong", email = "isaacyong@naver.com"}
@@ -14,9 +14,8 @@ license = { text = "MIT" }
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
 dependencies = [

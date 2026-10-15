@@ -82,11 +82,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run experiment based on ID')
     parser.add_argument('exp_num', type=int, help='Experiment number (e.g., 5)')
 
-    try:
-        args = parser.parse_args()
-    except SystemExit:
-        print("사용법: python main.py <실험번호>")
-        sys.exit(1)
+    args = parser.parse_args()
 
     # 1. 대상 폴더 찾기
     target_folder = find_exp_folder(args.exp_num)
