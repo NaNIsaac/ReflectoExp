@@ -7,6 +7,7 @@ authors:
     given-names: Isaac
     email: isaacyong@naver.com
     affiliation: "Sogang University"
+license: MIT
 repository-code: "https://github.com/NaNIsaac/ReflectoExp"
 abstract: "Deep learning for X-ray reflectivity (XRR) analysis: extracts thin-film parameters (thickness, roughness, electron density) from XRR measurements using CNNs trained on physics-based simulations."
 keywords:
