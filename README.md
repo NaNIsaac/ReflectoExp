@@ -1,5 +1,7 @@
 # ReflectoExp
 
+Experiment record. The maintained library is [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn).
+
 Experiment scripts for training neural networks that predict thin-film thickness, roughness and SLD from X-ray reflectivity (XRR) curves, using GenX (and earlier refnx) simulations as training data.
 
 Each folder under `runs/` is one self-contained experiment (config, simulation, dataset, model, training, evaluation). Shared simulation and physics helpers live in the `reflecto_exp` package under `src/`. A later rewrite with on-the-fly simulation and a differentiable Abeles engine is [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn).
