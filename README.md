@@ -1,5 +1,7 @@
 # ReflectoExp
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Experiment record. The maintained library is [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn).
 
 Experiment scripts for training neural networks that predict thin-film thickness, roughness and SLD from X-ray reflectivity (XRR) curves, using GenX (and earlier refnx) simulations as training data.
