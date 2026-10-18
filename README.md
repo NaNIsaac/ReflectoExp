@@ -2,11 +2,11 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Experiment record. The maintained library is [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn).
+Experiment record. The maintained library, with on-the-fly simulation and a differentiable Abeles engine, is [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn).
 
 Experiment scripts for training neural networks that predict thin-film thickness, roughness and SLD from X-ray reflectivity (XRR) curves, using GenX (and earlier refnx) simulations as training data.
 
-Each folder under `runs/` is one self-contained experiment (config, simulation, dataset, model, training, evaluation). Shared simulation and physics helpers live in the `reflecto_exp` package under `src/`. A later rewrite with on-the-fly simulation and a differentiable Abeles engine is [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn).
+Each folder under `runs/` is one self-contained experiment (config, simulation, dataset, model, training, evaluation). Shared simulation and physics helpers live in the `reflecto_exp` package under `src/`.
 
 ## Install
 
@@ -16,14 +16,14 @@ Uses [uv](https://docs.astral.sh/uv/) and Python 3.13. `torch` is pulled from th
 git clone https://github.com/NaNIsaac/ReflectoExp.git
 cd ReflectoExp
 uv sync
-uv pip install -e .     # pyproject has no build-system, so uv sync does not install reflecto_exp
+uv pip install -e .     # installs the reflecto_exp package
 ```
 
 The refnx-based experiments (exp02, exp03) also need `uv pip install refnx`, which is not a declared dependency.
 
 ## Usage
 
-Experiment scripts import their siblings as top-level modules (`import config`, `import simulate`), so they are run from inside their folder. The root `main.py` does that for you:
+Experiment scripts import their siblings as top-level modules (`import config`, `import simulate`), so they are run from inside their folder. The root `main.py` does that:
 
 ```bash
 uv run python main.py 7      # runs runs/exp07_fourier_hires/main.py with the .venv Python
