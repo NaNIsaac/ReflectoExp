@@ -1,4 +1,4 @@
-# D:\02_Projects\Dev\X-ray_AI\Reflecto\runs\exp02_one_layer\main.py
+# runs/exp02_one_layer/main.py
 import numpy as np
 import torch
 from config import CONFIG
