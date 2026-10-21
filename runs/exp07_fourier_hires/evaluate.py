@@ -54,7 +54,8 @@ def calculate_metrics(preds: np.ndarray, targets: np.ndarray) -> dict:
 # 2. Reporting & Saving
 # -----------------------------------------------------------------------------
 def save_results_csv(df: pd.DataFrame, save_path: Path):
-    if not save_path: return
+    if not save_path:
+        return
     save_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(save_path, index=False, encoding='utf-8-sig')
     print(f"[Save] CSV Report: {save_path.name}")
@@ -325,7 +326,8 @@ def save_advanced_reconstruction(
     preds: np.ndarray, targets: np.ndarray, qs: np.ndarray,
     save_path: Path, worst_indices: np.ndarray | None = None, n_random: int = 3
 ):
-    if not save_path: return
+    if not save_path:
+        return
 
     # Selection: Top 3 Worst Cases + 3 Random Cases
     if worst_indices is not None and len(worst_indices) >= 3:

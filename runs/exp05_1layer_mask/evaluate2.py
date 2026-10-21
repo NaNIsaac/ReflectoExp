@@ -93,7 +93,8 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
     """
     FOM 분포를 히스토그램과 통계로 보여주는 보고서
     """
-    if not save_path: return
+    if not save_path:
+        return
 
     fig = plt.figure(figsize=(10, 6), layout='constrained')
     gs = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1.5, 1])
@@ -147,7 +148,8 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
 # 3. Curve Reconstruction Plot (Updated with FOM)
 # ------------------------------------------------------------
 def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
-    if not save_path: return
+    if not save_path:
+        return
 
     # FOM 기준으로 Best/Worst 정렬 (MSE 대신 FOM 사용이 더 설득력 있음)
     sorted_indices = np.argsort(foms)
@@ -184,13 +186,16 @@ def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
 
         # FOM이 좋으면(낮으면) 초록색, 나쁘면 빨간색 텍스트
         color = 'darkgreen' if fom_val < 0.05 else 'black'
-        if i >= 4: color = 'firebrick' # Worst cases
+        if i >= 4:
+            color = 'firebrick' # Worst cases
 
         ax.set_title(title_str, fontsize=11, fontweight='bold', color=color)
         ax.set_xlabel("Q ($Å^{-1}$)")
 
-        if i % 3 == 0: ax.set_ylabel("Reflectivity (log)")
-        if i == 0: ax.legend(frameon=True)
+        if i % 3 == 0:
+            ax.set_ylabel("Reflectivity (log)")
+        if i == 0:
+            ax.legend(frameon=True)
         ax.grid(True, which='both', alpha=0.3)
 
     plt.savefig(save_path, bbox_inches='tight')
@@ -201,7 +206,8 @@ def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
 # 4. Investor Report (Metrics - Same as before)
 # ------------------------------------------------------------
 def save_investor_report_plots(df: pd.DataFrame, param_names: list[str], save_path: Path):
-    if not save_path: return
+    if not save_path:
+        return
     n_params = len(param_names)
     fig = plt.figure(figsize=(18, 12), layout='constrained')
     gs = gridspec.GridSpec(3, n_params, figure=fig)

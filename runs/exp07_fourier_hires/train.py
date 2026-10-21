@@ -173,7 +173,8 @@ class Trainer:
 
     def _load_checkpoint(self, filepath: str | Path) -> int:
         filepath = Path(filepath)
-        if not filepath.exists(): return 1
+        if not filepath.exists():
+            return 1
         checkpoint = torch.load(filepath, map_location=self.device, weights_only=False)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         if 'optimizer_state_dict' in checkpoint:

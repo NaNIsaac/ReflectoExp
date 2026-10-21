@@ -90,7 +90,9 @@ def plot_error_vs_thickness(df: pd.DataFrame, save_path: Path, title: str):
     for b in range(n_bins):
         vals = abs_err[idx == b]
         if len(vals) == 0:
-            med.append(np.nan); q1.append(np.nan); q3.append(np.nan)
+            med.append(np.nan)
+            q1.append(np.nan)
+            q3.append(np.nan)
         else:
             med.append(np.median(vals))
             q1.append(np.percentile(vals, 25))

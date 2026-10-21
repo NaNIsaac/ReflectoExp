@@ -92,7 +92,8 @@ class GenXFitter:
     def run(self, verbose=True):
         self._setup_parameters()
         model, cfg = self.model, self.config
-        if verbose: self._print_header()
+        if verbose:
+            self._print_header()
 
         # [Step 1] INITIAL ANCHORING: I0만 맞추기
         # start = time.time()

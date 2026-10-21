@@ -129,17 +129,34 @@ def Sim(data):
 
         # --- Parameters ---
         # 1. Material Params
-        p_f_d = pars.append("v.set_f_d", model); p_f_d.min=1.0; p_f_d.max=self.init_d*2
-        p_f_sig = pars.append("v.set_f_sig", model); p_f_sig.min=0.0; p_f_sig.max=30.0
-        p_f_sld = pars.append("v.set_f_sld", model); p_f_sld.min=0.1; p_f_sld.max=50.0
+        p_f_d = pars.append("v.set_f_d", model)
+        p_f_d.min=1.0
+        p_f_d.max=self.init_d*2
+        p_f_sig = pars.append("v.set_f_sig", model)
+        p_f_sig.min=0.0
+        p_f_sig.max=30.0
+        p_f_sld = pars.append("v.set_f_sld", model)
+        p_f_sld.min=0.1
+        p_f_sld.max=50.0
 
-        p_s_d = pars.append("v.set_s_d", model); p_s_d.value=15.0; p_s_d.min=5.0; p_s_d.max=50.0
-        p_s_sig = pars.append("v.set_s_sig", model); p_s_sig.value=3.0; p_s_sig.min=0.0; p_s_sig.max=15.0
-        p_s_sld = pars.append("v.set_s_sld", model); p_s_sld.value=18.8; p_s_sld.min=10.0; p_s_sld.max=23.0
+        p_s_d = pars.append("v.set_s_d", model)
+        p_s_d.value=15.0
+        p_s_d.min=5.0
+        p_s_d.max=50.0
+        p_s_sig = pars.append("v.set_s_sig", model)
+        p_s_sig.value=3.0
+        p_s_sig.min=0.0
+        p_s_sig.max=15.0
+        p_s_sld = pars.append("v.set_s_sld", model)
+        p_s_sld.value=18.8
+        p_s_sld.min=10.0
+        p_s_sld.max=23.0
 
         # 2. Instrument Params (I0 + Footprint)
         p_i0 = pars.append("v.set_i0", model)
-        p_i0.value = 1.0; p_i0.min = 0.1; p_i0.max = 5.0
+        p_i0.value = 1.0
+        p_i0.min = 0.1
+        p_i0.max = 5.0
 
         # [추가] 샘플 길이 피팅 (저각도 모양 결정)
         p_slen = pars.append("v.set_s_len", model)
