@@ -1,3 +1,4 @@
+import os
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -184,7 +185,7 @@ class XRRSimulator:
 
 
 def main() -> None:
-    root: Path = Path(r"D:\03_Resources\Data\XRR_AI\data")
+    root: Path = Path(os.environ["DATA"], r"XRR_AI\data")
     root.mkdir(parents=True, exist_ok=True)
     file: Path = root / "xrr_data.h5"
     # Measurement Configurations

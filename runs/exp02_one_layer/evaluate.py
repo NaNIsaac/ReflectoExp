@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     from config import CONFIG
     from dataset import XRR1LayerDataset
 
-    exp_dir = Path(r"D:\03_Resources\Data\XRR_AI\data\one_layer\run")
+    exp_dir = Path(os.environ["DATA"], r"XRR_AI\data\one_layer\run")
     h5_file = exp_dir / "dataset.h5"
     stats_file = exp_dir / "stats.pt"
     checkpoint_file = exp_dir / "best.pt"

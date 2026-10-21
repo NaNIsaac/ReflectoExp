@@ -1,5 +1,7 @@
-import numpy as np
+import os
+from pathlib import Path
 
+import numpy as np
 from reflecto_exp.physics_utils import tth2q
 from reflecto_exp.simulate.simul_genx import ParamSet, XRRSimulator
 
@@ -28,6 +30,6 @@ if __name__ == '__main__':
     qs: np.ndarray = np.linspace(q_min, q_max, q_n)
     param = ParamSet(42, 3.5, 5)
     R_dummy = generate_dummy_xrr(qs, param)
-    save_dir = Path(r"D:\03_Resources\Data\XRR_AI\data\one_layer\real_tester")
+    save_dir = Path(os.environ["DATA"], r"XRR_AI\data\one_layer\real_tester")
     np.save(save_dir / "measured_I.npy", R_dummy)
     np.save(save_dir / "measured_q.npy", qs)

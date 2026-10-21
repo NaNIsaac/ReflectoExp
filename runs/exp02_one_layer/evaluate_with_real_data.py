@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -179,13 +180,13 @@ if __name__ == "__main__":
     # -----------------------------
     # 경로 설정
     # -----------------------------
-    exp_dir = Path(r"D:\03_Resources\Data\XRR_AI\data\one_layer\run")
+    exp_dir = Path(os.environ["DATA"], r"XRR_AI\data\one_layer\run")
     stats_file = exp_dir / "stats.pt"
     checkpoint_file = exp_dir / "best.pt"
     out_dir = exp_dir / "eval_real"
 
     # 실제 측정 데이터 디렉토리
-    real_data_dir = Path(r'D:\03_Resources\Data\XRR_AI\data\one_layer\real_tester')
+    real_data_dir = Path(os.environ["DATA"], r'XRR_AI\data\one_layer\real_tester')
     measured_q = np.load(real_data_dir / "measured_q.npy")        # (M,)
     measured_I = np.load(real_data_dir / "measured_I.npy")        # (N, M) 또는 (M,)
     try:

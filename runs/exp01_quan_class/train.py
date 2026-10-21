@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -129,6 +130,6 @@ class XRRTrainer:
 
 
 if __name__ == "__main__":
-    h5_path = r"D:\03_Resources\Data\XRR_AI\data\p300o6_raw.h5"
+    h5_path = Path(os.environ["DATA"], r"XRR_AI\data\p300o6_raw.h5")
     trainer = XRRTrainer(h5_path, batch_size=32, epochs=20)
     trainer.train(save_every=5)

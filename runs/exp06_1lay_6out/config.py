@@ -1,14 +1,14 @@
 import json
+import os
 from pathlib import Path
 
 import numpy as np
-
 from reflecto_exp.physics_utils import tth2q
 
 CONFIG = {
     "exp_name": "test",
     # "base_dir": Path(r"D:\Members\IsaacYong\Data\XRR_AI\one_layer"),
-    "base_dir": Path(r"D:\03_Resources\Data\XRR_AI\data\one_layer"),
+    "base_dir": Path(os.environ["DATA"], r"XRR_AI\data\one_layer"),
     # "base_dir": Path(r"D:\data\XRR_AI\mask"),
     "param_ranges": {
         "thickness": None,

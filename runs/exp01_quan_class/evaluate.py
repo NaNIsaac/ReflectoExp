@@ -1,3 +1,4 @@
+import os
 import warnings
 from pathlib import Path
 
@@ -264,8 +265,8 @@ class XRREvaluator:
 
 if __name__ == "__main__":
     evaluator = XRREvaluator(
-        h5_path=r"D:\03_Resources\Data\XRR_AI\data\p300o6_raw.h5",
-        checkpoint_path=r"D:\03_Resources\Data\XRR_AI\model\xrr_model.pt",
+        h5_path=Path(os.environ["DATA"], r"XRR_AI\data\p300o6_raw.h5"),
+        checkpoint_path=Path(os.environ["DATA"], r"XRR_AI\model\xrr_model.pt"),
         batch_size=64,
         num_workers=0  # Windows 안정성
     )
