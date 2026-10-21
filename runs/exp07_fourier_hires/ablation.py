@@ -28,6 +28,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import simulate
 import torch
 from config import CONFIG, save_config
 from dataset import XRR1LayerDataset
@@ -35,8 +36,6 @@ from evaluate import evaluate_pipeline
 from torch.utils.data import DataLoader
 from train import Trainer
 from xrr_model import XRRPhysicsModel
-
-import simulate
 
 # -----------------------------------------------------------------------------
 # Variant 정의: 기준(CONFIG)에 덮어쓸 부분만 기술

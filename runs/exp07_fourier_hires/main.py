@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from train import Trainer
 from xrr_model import XRRPhysicsModel
 
+
 def set_seed(seed: int = 42):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
@@ -90,7 +91,7 @@ def register_nan_hooks(model):
     print("🔎 Installing NaN hooks on all layers...")
     for name, module in model.named_modules():
         # 컨테이너(Sequential 등)가 아닌 실제 연산 레이어에만 등록
-        if len(list(module.children())) == 0: 
+        if len(list(module.children())) == 0:
             module.register_forward_hook(forward_hook)
             module.register_full_backward_hook(backward_hook)
 

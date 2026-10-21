@@ -1,7 +1,5 @@
 import numpy as np
-
 from scipy.special import erf
-
 
 rad = np.pi / 180.0
 sqrt2 = np.sqrt(2.0)

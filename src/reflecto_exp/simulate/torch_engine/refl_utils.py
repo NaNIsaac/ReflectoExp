@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 #
 # This source code is licensed under the MIT license found in the
@@ -6,12 +5,11 @@
 
 from __future__ import annotations
 
-from math import sqrt, pi
+from math import pi, sqrt
 
 import numpy as np
-from numpy import ndarray
-
 import torch
+from numpy import ndarray
 from torch import Tensor
 
 __all__ = [

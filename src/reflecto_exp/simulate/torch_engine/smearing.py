@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from math import pi, sqrt, log
+from math import log, pi, sqrt
 
 import torch
 from torch import Tensor
+from torch.nn.functional import conv1d, pad
 
 from .abeles import abeles
-from torch.nn.functional import conv1d, pad
 
 
 def abeles_constant_smearing(

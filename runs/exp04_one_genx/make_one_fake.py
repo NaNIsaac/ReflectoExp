@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+
 from reflecto_exp.physics_utils import tth2q
 from reflecto_exp.simulate.simul_genx import ParamSet, XRRSimulator
 

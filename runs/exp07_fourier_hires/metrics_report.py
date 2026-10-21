@@ -341,7 +341,7 @@ def main():
     print("\n[cost]")
     tables["cost"] = build_cost(variants, ablation_dir, root / "dataset.h5", args.benchmark)
     tables["cost"].to_csv(out_dir / "metrics_cost.csv", index=False, encoding="utf-8-sig")
-    print(f"  [Save] metrics_cost.csv")
+    print("  [Save] metrics_cost.csv")
 
     steps = tables["cost"]["total_steps"].max() if "total_steps" in tables["cost"] else None
     budget_note = (f"> 학습 예산: variant당 약 {int(steps):,} optimizer steps (step-matched)"
