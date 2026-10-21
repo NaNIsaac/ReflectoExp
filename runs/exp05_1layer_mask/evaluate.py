@@ -15,6 +15,7 @@ from tqdm import tqdm
 from xrr_model import XRR1DRegressor
 
 from reflecto_exp.math_utils import powerspace
+from reflecto_exp.simulate.simul_genx import ParamSet, param2refl
 
 # ------------------------------------------------------------
 # 0. Global Style Settings

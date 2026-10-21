@@ -251,9 +251,9 @@ def fmt(df: pd.DataFrame, floatfmt: str = "{:.4g}") -> str:
 
     cols = list(out.columns)
     widths = [max(len(c), *(len(v) for v in out[c])) if len(out) else len(c) for c in cols]
-    header = "| " + " | ".join(c.ljust(w) for c, w in zip(cols, widths)) + " |"
+    header = "| " + " | ".join(c.ljust(w) for c, w in zip(cols, widths, strict=True)) + " |"
     sep = "|" + "|".join("-" * (w + 2) for w in widths) + "|"
-    body = ["| " + " | ".join(str(v).ljust(w) for v, w in zip(row, widths)) + " |"
+    body = ["| " + " | ".join(str(v).ljust(w) for v, w in zip(row, widths, strict=True)) + " |"
             for row in out.itertuples(index=False, name=None)]
     return "\n".join([header, sep, *body])
 

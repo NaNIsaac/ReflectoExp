@@ -137,7 +137,10 @@ class GenXFitter:
 
     def _print_header(self):
         print("\n" + "="*185)
-        print(f"{'Fitting Step':^15} | {'FOM (logR1)':^20} | {'Thick':^7} | {'Rough':^5} | {'SLD':^5} | {'SiO2_d':^6} | {'SiO2_s':^6} | {'SiO2_sld':^8} | {'I0':^5} | {'L':^4} | {'Bkg':^5} | {'Time':^7}")
+        print(
+            f"{'Fitting Step':^15} | {'FOM (logR1)':^20} | {'Thick':^7} | {'Rough':^5} | {'SLD':^5} | "
+            f"{'SiO2_d':^6} | {'SiO2_s':^6} | {'SiO2_sld':^8} | {'I0':^5} | {'L':^4} | {'Bkg':^5} | {'Time':^7}"
+        )
         print("-" * 185)
 
     def _print_status(self, step_name: str, elapsed: float):

@@ -15,13 +15,12 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from xrr_model import XRRPhysicsModel
 
+from reflecto_exp.simulate.simul_genx import ParamSet, param2refl
+
 apply_origin_style()
 
 # 유니코드 위첨자는 mathtext 폰트에 글리프가 없어 경고가 나므로 mathtext로 표기
 PARAM_NAMES = ["Thickness (Å)", "Roughness (Å)", r"SLD (10$^{-6}$ Å$^{-2}$)"]
-
-from reflecto_exp.simulate.simul_genx import ParamSet, param2refl
-
 
 # -----------------------------------------------------------------------------
 # 1. Advanced Metrics

@@ -10,10 +10,10 @@ import torch
 current_dir = Path(__file__).parent
 sys.path.append(str(current_dir))
 
-from config import CONFIG
-from dataset import XRRPreprocessor
+from config import CONFIG  # noqa: E402
+from dataset import XRRPreprocessor  # noqa: E402
 
-from reflecto_exp.math_utils import powerspace
+from reflecto_exp.math_utils import powerspace  # noqa: E402
 
 
 def inspect_statistics(stats_file):
@@ -80,10 +80,10 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
     # Step B: Interpolation (Linear q -> Power q)
     # Padding Check: -15.0 vs 0.0
     padding_val = -15.0  # 우리가 원하는 바닥값
-    R_interp = np.interp(target_qs, q_raw, R_log, left=padding_val, right=padding_val)
+    _R_interp = np.interp(target_qs, q_raw, R_log, left=padding_val, right=padding_val)
 
     # Step C: Masking
-    mask = (target_qs >= np.min(q_raw)) & (target_qs <= np.max(q_raw))
+    _mask = (target_qs >= np.min(q_raw)) & (target_qs <= np.max(q_raw))
 
     # Step D: Final Tensor (What model sees)
     input_tensor = processor.process_input(q_raw, R_raw)

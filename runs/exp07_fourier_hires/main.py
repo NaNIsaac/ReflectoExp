@@ -80,7 +80,7 @@ def register_nan_hooks(model):
     def backward_hook(module, grad_input, grad_output):
         # grad_output: 이 레이어에서 나가는 그라디언트
         if grad_output is not None:
-            for i, grad in enumerate(grad_output):
+            for _, grad in enumerate(grad_output):
                 if isinstance(grad, torch.Tensor):
                     if torch.isnan(grad).any():
                         print(f"🚨 [NaN Detected] Backward Pass (Gradient) - Layer: {module}")
@@ -89,7 +89,7 @@ def register_nan_hooks(model):
                         print(f"⚠️ [Inf Detected] Backward Pass (Gradient) - Layer: {module}")
 
     print("🔎 Installing NaN hooks on all layers...")
-    for name, module in model.named_modules():
+    for _, module in model.named_modules():
         # 컨테이너(Sequential 등)가 아닌 실제 연산 레이어에만 등록
         if len(list(module.children())) == 0:
             module.register_forward_hook(forward_hook)
@@ -125,7 +125,7 @@ def register_debug_hooks(model):
                     print(f"   - Weight stats: min={module.weight.min().item():.2e}, max={module.weight.max().item():.2e}")
                 raise RuntimeError(f"Explosion at {module}")
 
-    for name, module in model.named_modules():
+    for _, module in model.named_modules():
         # 컨테이너가 아닌 실제 연산 레이어에만 훅 등록
         if len(list(module.children())) == 0:
             module.register_forward_hook(forward_hook)

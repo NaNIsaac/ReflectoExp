@@ -106,8 +106,8 @@ class PhysicsValidator:
             success_rates.append(result["is_valid"])
 
         # 통계 계산
-        valid_mae = [mae for mae, valid in zip(all_mae, success_rates) if valid]
-        invalid_mae = [mae for mae, valid in zip(all_mae, success_rates) if not valid]
+        valid_mae = [mae for mae, valid in zip(all_mae, success_rates, strict=True) if valid]
+        invalid_mae = [mae for mae, valid in zip(all_mae, success_rates, strict=True) if not valid]
 
         stats = {
             "total_samples": len(indices),
