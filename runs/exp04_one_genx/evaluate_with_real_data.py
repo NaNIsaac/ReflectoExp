@@ -176,11 +176,13 @@ def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_pr
 # Example usage block (사용자 환경에 맞게 수정)
 # ------------------------------
 if __name__ == "__main__":
+    from config import CONFIG
     from model import XRR1DRegressor
     # -----------------------------
     # 경로 설정
     # -----------------------------
-    exp_dir = Path(os.environ["DATA"], r"XRR_AI\data\one_layer\run")
+    # The run main.py trains, not another experiment's folder.
+    exp_dir = CONFIG["base_dir"] / CONFIG["exp_name"]
     stats_file = exp_dir / "stats.pt"
     checkpoint_file = exp_dir / "best.pt"
     out_dir = exp_dir / "eval_real"
