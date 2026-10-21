@@ -187,7 +187,7 @@ class PhysicsValidator:
         axes[2].text(0.02, 0.98, f'MAE: {mae:.2f} Å',
                     transform=axes[2].transAxes,
                     verticalalignment='top',
-                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+                    bbox={"boxstyle": 'round', "facecolor": 'wheat', "alpha": 0.5})
 
         plt.tight_layout()
 

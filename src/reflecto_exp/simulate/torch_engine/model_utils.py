@@ -88,11 +88,11 @@ class BasicLayerStructureModel(PhysicalModel):
 
         num_layers = self.num_layers
 
-        params = dict(
-            thickness=theta[..., :num_layers],
-            roughness=theta[..., num_layers : 2 * num_layers + 1],
-            sld=theta[..., 2 * num_layers + 1 : 3 * num_layers + 2],
-        )
+        params = {
+            "thickness": theta[..., :num_layers],
+            "roughness": theta[..., num_layers : 2 * num_layers + 1],
+            "sld": theta[..., 2 * num_layers + 1 : 3 * num_layers + 2],
+        }
 
         add_idx = 3 * num_layers + 2
 

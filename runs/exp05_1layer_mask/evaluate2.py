@@ -137,7 +137,7 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
 
     ax2.text(0.1, 0.5, stats_text, fontsize=13, family='monospace',
              verticalalignment='center', transform=ax2.transAxes,
-             bbox=dict(boxstyle='round,pad=1', facecolor='#f8f9fa', edgecolor='#dee2e6'))
+             bbox={'boxstyle': 'round,pad=1', 'facecolor': '#f8f9fa', 'edgecolor': '#dee2e6'})
 
     plt.savefig(save_path, bbox_inches='tight')
     plt.close()
@@ -220,7 +220,7 @@ def save_investor_report_plots(df: pd.DataFrame, param_names: list[str], save_pa
         ax1.hexbin(y_true, y_pred, gridsize=40, cmap='Blues', mincnt=1, edgecolors='none')
         ax1.plot([min_v, max_v], [min_v, max_v], 'r--', lw=2, alpha=0.8)
         corr = np.corrcoef(y_true, y_pred)[0, 1]
-        ax1.text(0.05, 0.95, f'$R^2 = {corr**2:.3f}$', transform=ax1.transAxes, bbox=dict(boxstyle='round', facecolor='white', alpha=0.9))
+        ax1.text(0.05, 0.95, f'$R^2 = {corr**2:.3f}$', transform=ax1.transAxes, bbox={'boxstyle': 'round', 'facecolor': 'white', 'alpha': 0.9})
         ax1.set_title(f"{clean}: Pred vs True", fontweight='bold')
 
         # Residuals

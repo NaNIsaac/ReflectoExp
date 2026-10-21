@@ -17,7 +17,7 @@ class Sim_Vars:
         self.f_d   = {init_params['f_d']}
         self.f_sig = {init_params['f_sig']}
         self.f_sld = {init_params['f_sld']}
-        
+
         # SiO2 (Fixed/Guess)
         self.s_d   = 15.0
         self.s_sig = 3.0
@@ -41,7 +41,7 @@ class Sim_Vars:
 
     def set_f_sld(self, v): self.f_sld = float(v)
     def get_f_sld(self): return self.f_sld
-    
+
     # --- SiO2 ---
     def set_s_d(self, v): self.s_d = float(v)
     def get_s_d(self): return self.s_d
@@ -51,7 +51,7 @@ class Sim_Vars:
 
     def set_s_sld(self, v): self.s_sld = float(v)
     def get_s_sld(self): return self.s_sld
-    
+
     # --- Instrument ---
     def set_i0(self, v): self.i0 = float(v)
     def get_i0(self): return self.i0

@@ -21,7 +21,7 @@ def run_xrr_analysis(
     Args:
         data_path (str | Path): 분석할 .dat 파일 경로
         weights_dir (str | Path): 학습된 NN 모델 폴더 경로
-        inference_engine (XRRInferenceEngine, optional): 
+        inference_engine (XRRInferenceEngine, optional):
             이미 로드된 추론 엔진 객체. None이면 함수 내부에서 새로 로드합니다.
             (반복 호출 시 엔진을 미리 로드해서 넘겨주면 속도가 훨씬 빠릅니다)
         verbose (bool): 진행 상황 출력 여부
