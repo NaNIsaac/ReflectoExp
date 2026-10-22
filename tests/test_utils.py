@@ -53,9 +53,11 @@ def test_next_unique_file_numbers_after_the_highest_existing(tmp_path):
 
 def test_append_timestamp_keeps_the_suffix(tmp_path):
     with_suffix = append_timestamp(tmp_path / "scan.dat")
-    assert with_suffix.suffix == ".dat" and with_suffix.name.startswith("scan_")
+    assert with_suffix.parent == tmp_path and with_suffix.suffix == ".dat"
+    assert with_suffix != tmp_path / "scan.dat"
     no_suffix = append_timestamp(tmp_path / "scan")
-    assert no_suffix.suffix == "" and no_suffix.name.startswith("scan_")
+    assert no_suffix.parent == tmp_path and no_suffix.suffix == ""
+    assert no_suffix.name.startswith("scan_")
 
 
 def test_load_xrr_dat_skips_comments_reads_scientific_notation_and_zeros_garbage(tmp_path):

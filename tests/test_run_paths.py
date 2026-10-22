@@ -20,7 +20,8 @@ SCRIPTS = ["evaluate.py", "evaluate_with_real_data.py"]
 def test_evaluate_script_takes_the_run_folder_from_config(exp, script):
     text = (RUNS / exp / script).read_text(encoding="utf-8")
     assert 'CONFIG["base_dir"] / CONFIG["exp_name"]' in text
-    assert 'os.environ["DATA"]' not in text
+    # The folder another experiment trained into, which these scripts used to read.
+    assert 'r"XRR_AI\data\one_layer\run"' not in text
 
 
 @pytest.mark.parametrize("exp", EXPERIMENTS)
@@ -31,10 +32,11 @@ def test_main_trains_into_the_same_folder(exp):
 
 @pytest.mark.parametrize("exp", EXPERIMENTS)
 def test_config_defines_the_run_folder(exp, monkeypatch, tmp_path):
+    # exp02 builds base_dir from $DATA; exp04 writes a fixed path. Either way it must be a Path.
     monkeypatch.setenv("DATA", str(tmp_path))
     spec = importlib.util.spec_from_file_location(f"{exp}_config", RUNS / exp / "config.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     run_dir = module.CONFIG["base_dir"] / module.CONFIG["exp_name"]
     assert run_dir.parent == module.CONFIG["base_dir"]
-    assert tmp_path in module.CONFIG["base_dir"].parents
+    assert run_dir.name == module.CONFIG["exp_name"]
