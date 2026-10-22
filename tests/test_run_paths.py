@@ -21,7 +21,7 @@ def test_evaluate_script_takes_the_run_folder_from_config(exp, script):
     text = (RUNS / exp / script).read_text(encoding="utf-8")
     assert 'CONFIG["base_dir"] / CONFIG["exp_name"]' in text
     # The folder another experiment trained into, which these scripts used to read.
-    assert 'r"XRR_AI\data\one_layer\run"' not in text
+    assert r'r"XRR_AI\data\one_layer\run"' not in text
 
 
 @pytest.mark.parametrize("exp", EXPERIMENTS)
