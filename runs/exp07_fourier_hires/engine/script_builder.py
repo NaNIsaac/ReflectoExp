@@ -25,6 +25,7 @@ class Sim_Vars:
 
         # Instrument
         self.i0    = 1.0
+        self.ibkg  = {init_params["ibkg"]}
         self.s_len = {init_params["s_len"]}
         self.beam_w = {init_params["beam_w"]}
 
@@ -56,6 +57,9 @@ class Sim_Vars:
     def set_i0(self, v): self.i0 = float(v)
     def get_i0(self): return self.i0
 
+    def set_ibkg(self, v): self.ibkg = float(v)
+    def get_ibkg(self): return self.ibkg
+
     def set_s_len(self, v): self.s_len = float(v)
     def get_s_len(self): return self.s_len
 
@@ -75,7 +79,7 @@ sample = Sample(Stacks=[Stack(Layers=[Film, SiO2])], Ambient=Amb, Substrate=Sub)
 # Instrument Definitions
 inst = Instrument(
     probe=Probe.xray, wavelength=1.54, coords=Coords.q,
-    I0=v.i0, Ibkg=1e-10, res=0.002,
+    I0=v.i0, Ibkg=v.ibkg, res=0.002,
     restype=ResType.fast_conv,
     footype=FootType.gauss,
     samplelen=v.s_len,
@@ -86,6 +90,6 @@ def Sim(data):
     # Dynamic update hook
     Film.d, Film.sigma, Film.f = v.f_d, v.f_sig, to_f(v.f_sld)
     SiO2.d, SiO2.sigma, SiO2.f = v.s_d, v.s_sig, to_f(v.s_sld)
-    inst.I0, inst.samplelen, inst.beamw = v.i0, v.s_len, v.beam_w
+    inst.I0, inst.Ibkg, inst.samplelen, inst.beamw = v.i0, v.ibkg, v.s_len, v.beam_w
     return [Specular(d.x, sample, inst) for d in data]
 """
