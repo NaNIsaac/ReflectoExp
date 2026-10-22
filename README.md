@@ -15,8 +15,14 @@ Uses [uv](https://docs.astral.sh/uv/) and Python 3.13. `torch` is pulled from th
 ```bash
 git clone https://github.com/NaNIsaac/ReflectoExp.git
 cd ReflectoExp
+```
+
+Install the dependencies and the `reflecto_exp` package:
+
+<!-- test -->
+```bash
 uv sync
-uv pip install -e .     # installs the reflecto_exp package
+uv pip install -e .
 ```
 
 The refnx-based experiments (exp02, exp03) also need `uv pip install refnx`, which is not a declared dependency.
