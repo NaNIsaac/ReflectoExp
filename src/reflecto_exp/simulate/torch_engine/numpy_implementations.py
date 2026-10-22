@@ -14,7 +14,7 @@ def abeles_np(
     roughness: np.ndarray,
     sld: np.ndarray,
 ):
-    c_dtype = np.complex128 if q.dtype is np.float64 else np.complex64
+    c_dtype = np.complex128 if q.dtype == np.float64 else np.complex64
 
     if q.ndim == thickness.ndim == roughness.ndim == sld.ndim == 1:
         zero_batch = True
