@@ -10,7 +10,7 @@ Each folder under `runs/` is one self-contained experiment (config, simulation, 
 
 ## Install
 
-Uses [uv](https://docs.astral.sh/uv/) and Python 3.13. `torch` is pulled from the PyTorch CUDA 12.8 index.
+Uses [uv](https://docs.astral.sh/uv/) and Python 3.13. `torch` is pulled from the PyTorch CUDA 12.8 index (PyPI on macOS).
 
 ```bash
 git clone https://github.com/NaNIsaac/ReflectoExp.git
