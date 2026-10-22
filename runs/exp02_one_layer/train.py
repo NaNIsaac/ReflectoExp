@@ -9,15 +9,13 @@ from tqdm import tqdm
 
 
 class Trainer:
-    def __init__(self, model, train_loader: DataLoader, val_loader: DataLoader,
-        save_dir: str | Path,
-        lr: float = 1e-3, weight_decay: float = 1e-5):
+    def __init__(self, model, train_loader: DataLoader, val_loader: DataLoader, save_dir: str | Path, lr: float = 1e-3, weight_decay: float = 1e-5):
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
 
         self.optimizer = optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', patience=7, factor=0.5)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, mode="min", patience=7, factor=0.5)
 
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -25,7 +23,7 @@ class Trainer:
         self.checkpoint_dir = Path(save_dir)
         self.checkpoint_dir.mkdir(exist_ok=True)
 
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
         self.patience_counter = 0
         self.early_stop_patience = 15
 
@@ -48,7 +46,7 @@ class Trainer:
             self.optimizer.step()
 
             losses.append(loss.item())
-            pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+            pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
         return np.mean(losses)
 
@@ -60,7 +58,7 @@ class Trainer:
             for R, params in self.val_loader:
                 R, params = R.to(self.device), params.to(self.device)
                 pred = self.model(R)
-                total_loss += torch.nn.functional.mse_loss(pred, params, reduction='sum').item()
+                total_loss += torch.nn.functional.mse_loss(pred, params, reduction="sum").item()
 
         return total_loss / len(self.val_loader.dataset)
 
@@ -88,8 +86,7 @@ class Trainer:
             train_loss = self.train_epoch(epoch)
             val_loss = self.validate()
 
-            print(f"【Epoch {epoch:02d}】 Train Loss: {train_loss:.4f} | "
-                  f"Val Loss: {val_loss:.4f} | LR: {self.optimizer.param_groups[0]['lr']:.6f}")
+            print(f"【Epoch {epoch:02d}】 Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | LR: {self.optimizer.param_groups[0]['lr']:.6f}")
 
             self.scheduler.step(val_loss)
 
@@ -97,7 +94,7 @@ class Trainer:
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
                 self.patience_counter = 0
-                self.save_checkpoint('best.pt', epoch, val_loss)
+                self.save_checkpoint("best.pt", epoch, val_loss)
                 print("모델 저장 (best)")
             else:
                 self.patience_counter += 1
@@ -109,17 +106,20 @@ class Trainer:
 
     def save_checkpoint(self, filename: str, epoch: int, val_loss: float):
         """체크포인트 저장 (학습 상태 포함)"""
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
-            'val_loss': val_loss,
-            'config': {
-                'model_class': self.model.__class__.__name__,
-                'model_args': self.model.config,
-            }
-        }, self.checkpoint_dir / filename)
+        torch.save(
+            {
+                "epoch": epoch,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "scheduler_state_dict": self.scheduler.state_dict(),
+                "val_loss": val_loss,
+                "config": {
+                    "model_class": self.model.__class__.__name__,
+                    "model_args": self.model.config,
+                },
+            },
+            self.checkpoint_dir / filename,
+        )
         print(f"Saved checkpoint: {self.checkpoint_dir / filename}")
 
     def load_checkpoint(self, filepath: str | Path) -> int:
@@ -127,18 +127,18 @@ class Trainer:
         checkpoint = torch.load(filepath, map_location=self.device)
 
         # 모델 상태 로드
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model.load_state_dict(checkpoint["model_state_dict"])
 
         # 옵티마이저 상태 로드 (없으면 스킵)
-        if 'optimizer_state_dict' in checkpoint:
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if "optimizer_state_dict" in checkpoint:
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
         # 스케줄러 상태 로드 (없으면 스킵)
-        if 'scheduler_state_dict' in checkpoint:
-            self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        if "scheduler_state_dict" in checkpoint:
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
-        self.best_val_loss = checkpoint.get('val_loss', float('inf'))
+        self.best_val_loss = checkpoint.get("val_loss", float("inf"))
 
-        loaded_epoch = checkpoint.get('epoch', 0)
+        loaded_epoch = checkpoint.get("epoch", 0)
         print(f"✅ 체크포인트 로드 완료: {filepath} (에포크 {loaded_epoch})")
         return loaded_epoch

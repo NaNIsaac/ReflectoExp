@@ -28,12 +28,7 @@ class ParamQuantizer:
       q.quantize(param) -> np.ndarray([t_idx, r_idx, s_idx])
     """
 
-    def __init__(
-        self,
-        thickness_bins: np.ndarray | None = None,
-        roughness_bins: np.ndarray | None = None,
-        sld_bins: np.ndarray | None = None
-    ):
+    def __init__(self, thickness_bins: np.ndarray | None = None, roughness_bins: np.ndarray | None = None, sld_bins: np.ndarray | None = None):
         # sensible defaults (units: nm for thickness, Å for roughness, 1e-6 Å^-2 or user convention)
         self.thickness_bins = np.linspace(0.0, 200.0, 51) if thickness_bins is None else np.asarray(thickness_bins)
         self.roughness_bins = np.linspace(0.0, 10.0, 21) if roughness_bins is None else np.asarray(roughness_bins)
@@ -103,11 +98,14 @@ class ParamQuantizer:
         t = float(param.thickness)
         r = float(param.roughness)
         s = float(param.sld)
-        return np.array([
-            self._quantize_array(np.asarray([t]), self.thickness_bins)[0],
-            self._quantize_array(np.asarray([r]), self.roughness_bins)[0],
-            self._quantize_array(np.asarray([s]), self.sld_bins)[0],
-        ], dtype=np.int64)
+        return np.array(
+            [
+                self._quantize_array(np.asarray([t]), self.thickness_bins)[0],
+                self._quantize_array(np.asarray([r]), self.roughness_bins)[0],
+                self._quantize_array(np.asarray([s]), self.sld_bins)[0],
+            ],
+            dtype=np.int64,
+        )
 
     def quantize_multi(self, thickness_arr: np.ndarray, roughness_arr: np.ndarray, sld_arr: np.ndarray) -> np.ndarray:
         """Vectorized quantize for arrays per-layer. Returns shape (n_layers, 3)."""
@@ -214,7 +212,7 @@ class DatasetH5(Dataset):
         self._ensure_open()
         hf = self._hf
 
-        refl = hf["R"][idx]           # (q_len,) or (q_len, ...)
+        refl = hf["R"][idx]  # (q_len,) or (q_len, ...)
         thick = hf["thickness"][idx]  # (n_layers,)
         rough = hf["roughness"][idx]
         sld = hf["sld"][idx]

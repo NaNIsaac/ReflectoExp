@@ -51,38 +51,26 @@ def get_dataloaders(qs: np.ndarray, config: dict, h5_file: Path, stats_file: Pat
         "test_ratio": config["training"]["test_ratio"],
         "augment": True,
         "aug_prob": 0.5,
-        "min_scan_range": 0.15
+        "min_scan_range": 0.15,
     }
 
     # Create Dataset instances
     train_set = XRR1LayerDataset(**dataset_kwargs, mode="train")
-    val_set   = XRR1LayerDataset(**dataset_kwargs, mode="val")
-    test_set  = XRR1LayerDataset(**dataset_kwargs, mode="test")
+    val_set = XRR1LayerDataset(**dataset_kwargs, mode="val")
+    test_set = XRR1LayerDataset(**dataset_kwargs, mode="test")
 
     # Create DataLoaders
     batch_size = config["training"]["batch_size"]
     num_workers = config["training"]["num_workers"]
 
     train_loader = DataLoader(
-        train_set,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        pin_memory=True if torch.cuda.is_available() else False
+        train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True if torch.cuda.is_available() else False
     )
     val_loader = DataLoader(
-        val_set,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True if torch.cuda.is_available() else False
+        val_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True if torch.cuda.is_available() else False
     )
     test_loader = DataLoader(
-        test_set,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True if torch.cuda.is_available() else False
+        test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True if torch.cuda.is_available() else False
     )
 
     print(f"Dataset sizes: Train={len(train_set)}, Val={len(val_set)}, Test={len(test_set)}")
@@ -92,7 +80,7 @@ def get_dataloaders(qs: np.ndarray, config: dict, h5_file: Path, stats_file: Pat
 def main():
     print("=== 1-Layer XRR Regression Pipeline Started ===")
     if not Path(CONFIG["base_dir"]).exists():
-        raise FileNotFoundError(f"Base directory {CONFIG["base_dir"]} does not exist.")
+        raise FileNotFoundError(f"Base directory {CONFIG['base_dir']} does not exist.")
     # 1. Setup and Path Preparation
     set_seed(42)
 
@@ -107,10 +95,8 @@ def main():
     report_history_img = exp_dir / "training_history.png"
     config_file_json = exp_dir / "config.json"
     qs: np.ndarray = powerspace(
-        CONFIG["simulation"]["q_min"],
-        CONFIG["simulation"]["q_max"],
-        CONFIG["simulation"]["q_points"],
-        CONFIG["simulation"]["power"])
+        CONFIG["simulation"]["q_min"], CONFIG["simulation"]["q_max"], CONFIG["simulation"]["q_points"], CONFIG["simulation"]["power"]
+    )
     save_config(CONFIG, config_file_json)
     print(f"Config file saved at '{config_file_json}'")
     # 2. Data Preparation
@@ -142,16 +128,16 @@ def main():
         save_dir=exp_dir,
         lr=CONFIG["training"]["lr"],
         weight_decay=CONFIG["training"]["weight_decay"],
-        patience=CONFIG["training"]["patience"]
+        patience=CONFIG["training"]["patience"],
     )
 
     print("Starting training...")
     trainer.train(CONFIG["training"]["epochs"])
 
     # 6. Final Evaluation
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Performing Final Test Evaluation")
-    print("="*50)
+    print("=" * 50)
 
     if not checkpoint_file.exists():
         print(f"No checkpoint found at {checkpoint_file}. Skipping evaluation.")
@@ -163,7 +149,7 @@ def main():
         stats_path=stats_file,
         report_img_path=report_file_img,
         report_csv_path=report_file_csv,
-        report_history_path=report_history_img
+        report_history_path=report_history_img,
     )
 
 

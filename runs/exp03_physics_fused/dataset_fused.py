@@ -10,11 +10,7 @@ from torch.utils.data import Dataset
 
 
 class FusedDatasetH5(Dataset):
-    def __init__(self, h5_path: str | Path,
-        mode: str = "train",
-        val_ratio: float = 0.2,
-        norm_ranges: dict | None = None
-    ):
+    def __init__(self, h5_path: str | Path, mode: str = "train", val_ratio: float = 0.2, norm_ranges: dict | None = None):
         self.h5_path = Path(h5_path)
         self.mode = mode
         if not self.h5_path.exists():
@@ -30,11 +26,7 @@ class FusedDatasetH5(Dataset):
 
         # Ranges
         if norm_ranges is None:
-            norm_ranges = {
-                "thickness": [0.0, 200.0],
-                "roughness" : [0.0, 10.0],
-                "sld" : [0.0, 140.0]
-            }
+            norm_ranges = {"thickness": [0.0, 200.0], "roughness": [0.0, 10.0], "sld": [0.0, 140.0]}
         self.thickness_range = norm_ranges["thickness"]
         self.roughness_range = norm_ranges["roughness"]
         self.sld_range = norm_ranges["sld"]
@@ -56,17 +48,16 @@ class FusedDatasetH5(Dataset):
         rough_norm = self._normalize(rough, self.roughness_range)
         sld_norm = self._normalize(sld, self.sld_range)
 
-        targets = torch.stack([
-            torch.tensor(thick_norm, dtype=torch.float32),
-            torch.tensor(rough_norm, dtype=torch.float32),
-            torch.tensor(sld_norm, dtype=torch.float32)
-        ], dim=-1)
+        targets = torch.stack(
+            [
+                torch.tensor(thick_norm, dtype=torch.float32),
+                torch.tensor(rough_norm, dtype=torch.float32),
+                torch.tensor(sld_norm, dtype=torch.float32),
+            ],
+            dim=-1,
+        )
 
-        return {
-            "reflectivity": torch.from_numpy(refl),
-            "targets": targets,
-            "q_values": self.q_values
-        }
+        return {"reflectivity": torch.from_numpy(refl), "targets": targets, "q_values": self.q_values}
 
     @staticmethod
     def _normalize(values: np.ndarray, value_range: tuple) -> np.ndarray:

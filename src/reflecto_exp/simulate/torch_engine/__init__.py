@@ -56,4 +56,3 @@ def simulate_reflectivity(
     reflectivity_curves = reflectivity_curves * r_scale + bkg
 
     return reflectivity_curves
-

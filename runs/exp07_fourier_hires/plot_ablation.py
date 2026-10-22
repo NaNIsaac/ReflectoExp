@@ -79,8 +79,7 @@ def plot_mae_by_variant(dfs: dict[str, pd.DataFrame], save_path: Path):
     domains = [d for d in ("clean", "augmented") if d in dfs]
     y = np.arange(len(order))[::-1]  # 첫 variant가 위로 오도록
 
-    fig, axes = plt.subplots(1, len(PARAMS), figsize=(4.9 * len(PARAMS), 4.2),
-                             sharey=True)
+    fig, axes = plt.subplots(1, len(PARAMS), figsize=(4.9 * len(PARAMS), 4.2), sharey=True)
 
     for ax, (key, title, xlabel) in zip(axes, PARAMS, strict=True):
         style_axes(ax)
@@ -96,10 +95,18 @@ def plot_mae_by_variant(dfs: dict[str, pd.DataFrame], save_path: Path):
         for domain in domains:
             df = series[domain]
             vals = [df.loc[v, col] if v in df.index else np.nan for v in order]
-            ax.plot(vals, y, ls="none",
-                    marker=DOMAIN_STYLE[domain]["marker"], ms=8,
-                    mfc=DOMAIN_STYLE[domain]["color"], mec=INK, mew=0.8,
-                    label=DOMAIN_STYLE[domain]["label"], zorder=3)
+            ax.plot(
+                vals,
+                y,
+                ls="none",
+                marker=DOMAIN_STYLE[domain]["marker"],
+                ms=8,
+                mfc=DOMAIN_STYLE[domain]["color"],
+                mec=INK,
+                mew=0.8,
+                label=DOMAIN_STYLE[domain]["label"],
+                zorder=3,
+            )
 
         ax.set_xscale("log")
         ax.set_xlabel(xlabel)
@@ -112,10 +119,8 @@ def plot_mae_by_variant(dfs: dict[str, pd.DataFrame], save_path: Path):
 
     # 패널 안에 두면 데이터 점을 가리므로 그림 상단에 가로로 배치
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=len(labels),
-               bbox_to_anchor=(0.5, 0.955))
-    fig.suptitle("Ablation: mean absolute error by variant and evaluation domain",
-                 fontsize=13, y=1.06)
+    fig.legend(handles, labels, loc="upper center", ncol=len(labels), bbox_to_anchor=(0.5, 0.955))
+    fig.suptitle("Ablation: mean absolute error by variant and evaluation domain", fontsize=13, y=1.06)
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
@@ -144,13 +149,21 @@ def plot_domain_gap(dfs: dict[str, pd.DataFrame], save_path: Path):
     for i, (key, title, _) in enumerate(PARAMS):
         col = f"{key}_MAE"
         ratio = [aug.loc[v, col] / clean.loc[v, col] for v in order]
-        ax.plot(ratio, y + (i - (len(PARAMS) - 1) / 2) * offset, ls="none",
-                marker=ORIGIN_MARKERS[i], ms=8,
-                mfc=ORIGIN_COLORS[i], mec=INK, mew=0.8, label=title, zorder=3)
+        ax.plot(
+            ratio,
+            y + (i - (len(PARAMS) - 1) / 2) * offset,
+            ls="none",
+            marker=ORIGIN_MARKERS[i],
+            ms=8,
+            mfc=ORIGIN_COLORS[i],
+            mec=INK,
+            mew=0.8,
+            label=title,
+            zorder=3,
+        )
 
     ax.axvline(1.0, color=INK, linestyle="--", lw=1.2)
-    ax.text(1.05, len(order) - 0.6, "no degradation", va="top", ha="left",
-            fontsize=9, color=INK)
+    ax.text(1.05, len(order) - 0.6, "no degradation", va="top", ha="left", fontsize=9, color=INK)
 
     ax.set_yticks(y)
     ax.set_yticklabels(order)
@@ -183,18 +196,23 @@ def plot_r2_panel(dfs: dict[str, pd.DataFrame], save_path: Path):
 
     if len(domains) == 2:
         for yi, v in zip(y, order, strict=True):
-            _dumbbell(ax, yi,
-                      1.0 - series["clean"].loc[v, "Thickness_R2"],
-                      1.0 - series["augmented"].loc[v, "Thickness_R2"])
+            _dumbbell(ax, yi, 1.0 - series["clean"].loc[v, "Thickness_R2"], 1.0 - series["augmented"].loc[v, "Thickness_R2"])
 
     for domain in domains:
         df = series[domain]
-        vals = [1.0 - df.loc[v, "Thickness_R2"] if v in df.index else np.nan
-                for v in order]
-        ax.plot(vals, y, ls="none",
-                marker=DOMAIN_STYLE[domain]["marker"], ms=8,
-                mfc=DOMAIN_STYLE[domain]["color"], mec=INK, mew=0.8,
-                label=DOMAIN_STYLE[domain]["label"], zorder=3)
+        vals = [1.0 - df.loc[v, "Thickness_R2"] if v in df.index else np.nan for v in order]
+        ax.plot(
+            vals,
+            y,
+            ls="none",
+            marker=DOMAIN_STYLE[domain]["marker"],
+            ms=8,
+            mfc=DOMAIN_STYLE[domain]["color"],
+            mec=INK,
+            mew=0.8,
+            label=DOMAIN_STYLE[domain]["label"],
+            zorder=3,
+        )
 
     ax.set_yticks(y)
     ax.set_yticklabels(order)

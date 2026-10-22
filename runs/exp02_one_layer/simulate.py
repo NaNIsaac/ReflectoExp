@@ -36,9 +36,8 @@ def generate_1layer_data(config: dict, h5_file: Path | str):
         thickness_range=param_ranges["thickness"],
         roughness_range=param_ranges["roughness"],
         sld_range=param_ranges["sld"],
-        has_footprint=True
+        has_footprint=True,
     )
-
 
     simulator.save_hdf5(h5_file, show_progress=True)
 
@@ -46,6 +45,7 @@ def generate_1layer_data(config: dict, h5_file: Path | str):
     print(f"   - 샘플 수: {simulation['n_samples']:,}")
     print(f"   - q 포인트: {len(q_values)}")
     print(f"   - 파라미터 범위: {param_ranges}")
+
 
 if __name__ == "__main__":
     pass

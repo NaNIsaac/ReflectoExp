@@ -48,11 +48,7 @@ class XRRInferenceEngine:
         # 3. 전처리기 초기화
         # 여기서 target_qs를 넘겨주면, process_input에서
         # 들어오는 모든 데이터(등간격)를 이 target_qs(비선형)에 맞춰 내삽합니다.
-        self.processor = XRRPreprocessor(
-            qs=self.target_qs,
-            stats_file=self.stats_file,
-            device=self.device
-        )
+        self.processor = XRRPreprocessor(qs=self.target_qs, stats_file=self.stats_file, device=self.device)
 
         # 4. 모델 로드
         self._load_model()
@@ -61,16 +57,19 @@ class XRRInferenceEngine:
         ckpt = torch.load(self.checkpoint_file, map_location=self.device)
 
         # Config Fallback
-        model_args = ckpt.get('config', {}).get('model_args', {
-            'q_len': len(self.target_qs),
-            'input_channels': 2,
-            'n_channels': CONFIG["model"]["n_channels"],
-            'depth': CONFIG["model"]["depth"],
-            'mlp_hidden': CONFIG["model"]["mlp_hidden"],
-        })
+        model_args = ckpt.get("config", {}).get(
+            "model_args",
+            {
+                "q_len": len(self.target_qs),
+                "input_channels": 2,
+                "n_channels": CONFIG["model"]["n_channels"],
+                "depth": CONFIG["model"]["depth"],
+                "mlp_hidden": CONFIG["model"]["mlp_hidden"],
+            },
+        )
 
         self.model = XRR1DRegressor(**model_args).to(self.device)
-        self.model.load_state_dict(ckpt['model_state_dict'])
+        self.model.load_state_dict(ckpt["model_state_dict"])
         self.model.eval()
         print(f"[Inference] Model loaded from {self.checkpoint_file}")
 

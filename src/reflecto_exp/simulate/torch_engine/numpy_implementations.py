@@ -27,12 +27,8 @@ def abeles_np(
 
     batch_size, num_layers = thickness.shape
 
-    sld = np.concatenate([np.zeros((batch_size, 1)).astype(sld.dtype), sld], -1)[
-        :, None
-    ]
-    thickness = np.concatenate(
-        [np.zeros((batch_size, 1)).astype(thickness.dtype), thickness], -1
-    )[:, None]
+    sld = np.concatenate([np.zeros((batch_size, 1)).astype(sld.dtype), sld], -1)[:, None]
+    thickness = np.concatenate([np.zeros((batch_size, 1)).astype(thickness.dtype), thickness], -1)[:, None]
     roughness = roughness[:, None] ** 2
 
     sld = sld * 1e-6 + 1e-30j
@@ -106,20 +102,11 @@ def kinematical_approximation_np(
     if q.ndim == 2:
         q = q[..., None]
 
-    drho = np.concatenate([sld[..., 0][..., None], sld[..., 1:] - sld[..., :-1]], -1)[
-        :, None
-    ]
-    thickness = np.cumsum(
-        np.concatenate([np.zeros((batch_size, 1)), thickness], -1), -1
-    )[:, None]
+    drho = np.concatenate([sld[..., 0][..., None], sld[..., 1:] - sld[..., :-1]], -1)[:, None]
+    thickness = np.cumsum(np.concatenate([np.zeros((batch_size, 1)), thickness], -1), -1)[:, None]
     roughness = roughness[:, None]
 
-    r = (
-        np.abs(
-            (drho * np.exp(-((roughness * q) ** 2) / 2 + 1j * (q * thickness))).sum(-1)
-        ).astype(float)
-        ** 2
-    )
+    r = np.abs((drho * np.exp(-((roughness * q) ** 2) / 2 + 1j * (q * thickness))).sum(-1)).astype(float) ** 2
 
     rf = _get_resnel_reflectivity_np(q, substrate_sld[:, None])
 

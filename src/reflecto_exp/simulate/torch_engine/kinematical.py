@@ -32,20 +32,13 @@ def kinematical_approximation(
 
     sld = sld * 1e-6 + 1e-30j
 
-    drho = torch.cat([sld[..., 0][..., None], sld[..., 1:] - sld[..., :-1]], -1)[
-        :, None
-    ]
-    thickness = torch.cumsum(
-        torch.cat([torch.zeros(batch_size, 1).to(thickness), thickness], -1), -1
-    )[:, None]
+    drho = torch.cat([sld[..., 0][..., None], sld[..., 1:] - sld[..., :-1]], -1)[:, None]
+    thickness = torch.cumsum(torch.cat([torch.zeros(batch_size, 1).to(thickness), thickness], -1), -1)[:, None]
     roughness = roughness[:, None]
 
-    r = (drho * torch.exp(-((roughness * q) ** 2) / 2 + 1j * (q * thickness))).sum(
-        -1
-    ).abs().float() ** 2
+    r = (drho * torch.exp(-((roughness * q) ** 2) / 2 + 1j * (q * thickness))).sum(-1).abs().float() ** 2
 
     if apply_fresnel:
-
         substrate_sld = sld[:, -1:]
 
         rf = _get_resnel_reflectivity(q, substrate_sld[:, None])

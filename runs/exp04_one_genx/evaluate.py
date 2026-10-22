@@ -39,15 +39,15 @@ def evaluate(model, test_loader: DataLoader, stats_path: Path | str, report_file
     # 오류 계산
     errors = preds - targets
     mae = torch.mean(torch.abs(errors), dim=0)
-    rmse = torch.sqrt(torch.mean(errors ** 2, dim=0))
+    rmse = torch.sqrt(torch.mean(errors**2, dim=0))
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("TEST RESULTS")
-    print("="*50)
+    print("=" * 50)
     param_names = ["Thickness (nm)", "Roughness (Å)", "SLD"]
     for i, name in enumerate(param_names):
         print(f"{name:15s}: MAE={mae[i]:7.3f} | RMSE={rmse[i]:7.3f}")
-    print("="*50)
+    print("=" * 50)
 
     # 시각화
     if save_plot:
@@ -57,18 +57,18 @@ def evaluate(model, test_loader: DataLoader, stats_path: Path | str, report_file
             ax = axes[i]
             data = errors[:, i].numpy()
 
-            ax.hist(data, bins=50, density=True, alpha=0.6, color='steelblue', edgecolor='black')
-            ax.axvline(0, color='red', linestyle='--', linewidth=2)
-            ax.axvline(np.mean(data), color='orange', linestyle=':', label=f'Mean: {np.mean(data):.3f}')
+            ax.hist(data, bins=50, density=True, alpha=0.6, color="steelblue", edgecolor="black")
+            ax.axvline(0, color="red", linestyle="--", linewidth=2)
+            ax.axvline(np.mean(data), color="orange", linestyle=":", label=f"Mean: {np.mean(data):.3f}")
 
-            ax.set_xlabel('Prediction Error')
-            ax.set_ylabel('Density')
-            ax.set_title(f'{name}\nMAE={mae[i]:.3f}')
+            ax.set_xlabel("Prediction Error")
+            ax.set_ylabel("Density")
+            ax.set_title(f"{name}\nMAE={mae[i]:.3f}")
             ax.legend()
             ax.grid(alpha=0.3)
 
         plt.tight_layout()
-        plt.savefig(report_file, dpi=300, bbox_inches='tight')
+        plt.savefig(report_file, dpi=300, bbox_inches="tight")
         print(f"오류 분포 그래프 저장: {report_file}")
 
     return errors, mae, rmse
@@ -77,13 +77,13 @@ def evaluate(model, test_loader: DataLoader, stats_path: Path | str, report_file
 def load_checkpoint_and_evaluate(test_loader: DataLoader, checkpoint_path: Path, stats_path: Path, report_file: Path):
     """체크포인트 로드 및 평가"""
     # 체크포인트 로드
-    ckpt = torch.load(checkpoint_path, map_location='cpu')
-    config = ckpt['config']['model_args']
+    ckpt = torch.load(checkpoint_path, map_location="cpu")
+    config = ckpt["config"]["model_args"]
 
     # 모든 인자로 모델 생성
     model = XRR1DRegressor(**config)
-    model.load_state_dict(ckpt['model_state_dict'])
-    model = model.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    model.load_state_dict(ckpt["model_state_dict"])
+    model = model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     # 평가
     evaluate(model, test_loader, stats_path, report_file)
@@ -101,7 +101,6 @@ if __name__ == "__main__":
     report_file = exp_dir / "error_distribution.png"
 
     test_set = XRR1LayerDataset(h5_file, stats_file, mode="test", val_ratio=CONFIG["training"]["val_ratio"])
-    test_loader = DataLoader(test_set, batch_size=CONFIG["training"]["batch_size"],
-    shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_set, batch_size=CONFIG["training"]["batch_size"], shuffle=False, num_workers=0)
 
     load_checkpoint_and_evaluate(test_loader, checkpoint_file, stats_file, report_file)

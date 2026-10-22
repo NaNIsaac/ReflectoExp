@@ -63,13 +63,15 @@ def metrics_from_df(df: pd.DataFrame) -> pd.DataFrame:
         true = df[f"{clean}_True"].to_numpy()
         pred = df[f"{clean}_Pred"].to_numpy()
         err = df[f"{clean}_Error"].to_numpy()
-        rows.append({
-            "parameter": clean,
-            "MAE": np.mean(np.abs(err)),
-            "RMSE": np.sqrt(np.mean(err ** 2)),
-            "MAPE_%": np.mean(np.abs(err) / (np.abs(true) + 1e-6)) * 100,
-            "R2": calculate_r2(true, pred),
-        })
+        rows.append(
+            {
+                "parameter": clean,
+                "MAE": np.mean(np.abs(err)),
+                "RMSE": np.sqrt(np.mean(err**2)),
+                "MAPE_%": np.mean(np.abs(err) / (np.abs(true) + 1e-6)) * 100,
+                "R2": calculate_r2(true, pred),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -101,12 +103,9 @@ def plot_error_vs_thickness(df: pd.DataFrame, save_path: Path, title: str):
     fig, ax = plt.subplots(figsize=(7.5, 4.6))
     style_axes(ax)
 
-    ax.scatter(thick, abs_err, s=6, color=ORIGIN_COLORS[1], alpha=0.15,
-               edgecolor="none", zorder=1)
-    ax.fill_between(centers, q1, q3, color=ORIGIN_COLORS[0], alpha=0.20,
-                    linewidth=0, zorder=2, label="Interquartile range")
-    ax.plot(centers, med, color=ORIGIN_COLORS[0], marker="o", ms=5,
-            mec=INK, mew=0.6, zorder=3, label="Median")
+    ax.scatter(thick, abs_err, s=6, color=ORIGIN_COLORS[1], alpha=0.15, edgecolor="none", zorder=1)
+    ax.fill_between(centers, q1, q3, color=ORIGIN_COLORS[0], alpha=0.20, linewidth=0, zorder=2, label="Interquartile range")
+    ax.plot(centers, med, color=ORIGIN_COLORS[0], marker="o", ms=5, mec=INK, mew=0.6, zorder=3, label="Median")
 
     ax.set_yscale("log")
     # 0에 가까운 소수의 오차가 축을 6 decade로 늘려 중앙값/IQR을 짓눌러 버린다.
@@ -114,8 +113,7 @@ def plot_error_vs_thickness(df: pd.DataFrame, save_path: Path, title: str):
     floor = np.percentile(abs_err, 1)
     below = float(np.mean(abs_err < floor) * 100)
     ax.set_ylim(bottom=floor, top=abs_err.max() * 1.5)
-    ax.text(0.99, 0.02, f"{below:.0f}% of points below axis",
-            transform=ax.transAxes, ha="right", va="bottom", fontsize=9, color=INK)
+    ax.text(0.99, 0.02, f"{below:.0f}% of points below axis", transform=ax.transAxes, ha="right", va="bottom", fontsize=9, color=INK)
 
     ax.set_xlabel("True thickness (Å)")
     ax.set_ylabel("Absolute thickness error (Å)")
@@ -128,8 +126,7 @@ def plot_error_vs_thickness(df: pd.DataFrame, save_path: Path, title: str):
     print(f"  [Save] {save_path.name}")
 
 
-def build_for(label: str, variant: str, ablation_dir: Path, out_dir: Path,
-              domains: list[str], clip_axes: bool):
+def build_for(label: str, variant: str, ablation_dir: Path, out_dir: Path, domains: list[str], clip_axes: bool):
     var_dir = ablation_dir / variant
     if not var_dir.exists():
         print(f"[Skip] {label}: {var_dir} not found")
@@ -148,13 +145,11 @@ def build_for(label: str, variant: str, ablation_dir: Path, out_dir: Path,
         df = pd.read_csv(csv_path)
 
         head = f"{shown} — {DOMAIN_TITLE[domain]}"
-        save_correlation_plot(df, PARAM_NAMES,
-                              out_dir / f"{label}_parity_{domain}.png",
-                              title_prefix=head, clip_axes=clip_axes)
-        plot_error_heatmap(df, save_path=out_dir / f"{label}_heatmap_{domain}.png",
-                           title_prefix=head)
+        save_correlation_plot(df, PARAM_NAMES, out_dir / f"{label}_parity_{domain}.png", title_prefix=head, clip_axes=clip_axes)
+        plot_error_heatmap(df, save_path=out_dir / f"{label}_heatmap_{domain}.png", title_prefix=head)
         plot_error_vs_thickness(
-            df, out_dir / f"{label}_error_vs_thickness_{domain}.png",
+            df,
+            out_dir / f"{label}_error_vs_thickness_{domain}.png",
             f"{head}: thickness error vs film thickness",
         )
 
@@ -168,8 +163,7 @@ def build_for(label: str, variant: str, ablation_dir: Path, out_dir: Path,
         ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
         history = ckpt.get("history", {})
         if history:
-            save_history_plot(history, out_dir / f"{label}_learning_curve.png",
-                              title_prefix=shown)
+            save_history_plot(history, out_dir / f"{label}_learning_curve.png", title_prefix=shown)
 
     # 곡선 재구성 그림은 GenX 시뮬레이션이 필요하므로 기존 산출물을 가져온다
     recon = var_dir / "reconstruction_analysis.png"
@@ -181,23 +175,22 @@ def build_for(label: str, variant: str, ablation_dir: Path, out_dir: Path,
         table = pd.concat(summary, ignore_index=True)
         table.to_csv(out_dir / f"{label}_metrics.csv", index=False, encoding="utf-8-sig")
         print(f"  [Save] {label}_metrics.csv")
-        print(table.to_string(index=False,
-                              float_format=lambda v: f"{v:.4f}"))
+        print(table.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
 
 
 def main():
     parser = argparse.ArgumentParser(description="Report figure builder")
-    parser.add_argument("--only", nargs="+", default=["current", "previous"],
-                        help=f"출력할 라벨 (기본: current previous). 선택지: {list(LABELS)}")
+    parser.add_argument("--only", nargs="+", default=["current", "previous"], help=f"출력할 라벨 (기본: current previous). 선택지: {list(LABELS)}")
     parser.add_argument("--all", action="store_true", help="정의된 라벨 전체 출력")
-    parser.add_argument("--clean", action="store_true",
-                        help="출력 폴더를 비우고 새로 생성 (이름 규칙이 바뀐 뒤 잔여 파일 제거용)")
-    parser.add_argument("--domains", nargs="+", default=["augmented"],
-                        choices=["clean", "augmented"],
-                        help="평가 도메인 (기본: augmented). 절대 성능이 아니라 "
-                             "측정 조건에서의 성능을 보여주는 쪽이 augmented")
-    parser.add_argument("--no-clip", action="store_true",
-                        help="축 자르기 없이 전체 범위로 그리기")
+    parser.add_argument("--clean", action="store_true", help="출력 폴더를 비우고 새로 생성 (이름 규칙이 바뀐 뒤 잔여 파일 제거용)")
+    parser.add_argument(
+        "--domains",
+        nargs="+",
+        default=["augmented"],
+        choices=["clean", "augmented"],
+        help="평가 도메인 (기본: augmented). 절대 성능이 아니라 측정 조건에서의 성능을 보여주는 쪽이 augmented",
+    )
+    parser.add_argument("--no-clip", action="store_true", help="축 자르기 없이 전체 범위로 그리기")
     args = parser.parse_args()
 
     labels = list(LABELS) if args.all else args.only
@@ -216,8 +209,7 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for label in labels:
-        build_for(label, LABELS[label], ablation_dir, out_dir,
-                  domains=args.domains, clip_axes=not args.no_clip)
+        build_for(label, LABELS[label], ablation_dir, out_dir, domains=args.domains, clip_axes=not args.no_clip)
 
     write_readme(out_dir, labels, args.domains)
     print(f"\n✅ Figures written to {out_dir}")

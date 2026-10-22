@@ -11,13 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 def func_gauss(x, a, p, w):
-    return a * np.exp(-np.log(2) * ((x - p) / (w / 2))**2)
+    return a * np.exp(-np.log(2) * ((x - p) / (w / 2)) ** 2)
 
 
 def func_gauss3(x, a1, p1, w1, a2, p2, w2, a3, p3, w3):
-    return (func_gauss(x, a1, p1, w1) +
-            func_gauss(x, a2, p2, w2) +
-            func_gauss(x, a3, p3, w3))
+    return func_gauss(x, a1, p1, w1) + func_gauss(x, a2, p2, w2) + func_gauss(x, a3, p3, w3)
 
 
 def xrr_fft(x, y, d=None, window=2, n=None, step_num: int = 1000):
@@ -102,7 +100,7 @@ class PhysicsLayer(nn.Module):
         return physics_output, validity_mask
 
     def _process_single_with_fitting(self, q: np.ndarray, R: np.ndarray):
-        """ valid_comb 로직 적용 + 피팅"""
+        """valid_comb 로직 적용 + 피팅"""
         # 1. Baseline 제거
         R_baseline_removed = self._remove_baseline(R)
 
@@ -163,10 +161,7 @@ class PhysicsLayer(nn.Module):
                 # bounds = (bounds_lower, bounds_upper)
 
                 # 피팅
-                popt, pcov = curve_fit(
-                    func_gauss3, x_fit, y_fit,
-                    p0=p0, maxfev=2000
-                )
+                popt, pcov = curve_fit(func_gauss3, x_fit, y_fit, p0=p0, maxfev=2000)
 
                 # 품질 점수 (covariance trace)
                 score = 1.0 / (1.0 + np.trace(pcov))
@@ -215,9 +210,8 @@ class PhysicsLayer(nn.Module):
     def _remove_baseline(self, R: np.ndarray) -> np.ndarray:
         R_log = np.log10(np.clip(R, 1e-12, None))
         window_len = len(R_log)
-        R_smooth = signal.savgol_filter(R_log, window_length=window_len,
-            polyorder=self.baseline_polyorder, mode='interp')
-        R_baseline = 10 ** R_smooth
+        R_smooth = signal.savgol_filter(R_log, window_length=window_len, polyorder=self.baseline_polyorder, mode="interp")
+        R_baseline = 10**R_smooth
         R_savgol = R / (R_baseline + 1e-12)
         R_savgol = R_savgol / (R_savgol[0] + 1e-12) * R.max()
         return R_savgol
@@ -229,12 +223,12 @@ class PhysicsLayer(nn.Module):
         return x_fft, y_fft
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from reflecto_exp.physics_utils import tth2q
     from reflecto_exp.simulate.simul_refnx import XRRSimulator
 
     wavelen: float = 1.54  # (nm)
-    tth_min: float = 0.2   # degree
+    tth_min: float = 0.2  # degree
     tth_max: float = 6.0
     tth_n: int = 300
     tths: np.ndarray = np.linspace(tth_min, tth_max, tth_n)
@@ -259,4 +253,4 @@ if __name__ == '__main__':
     print(f"추정 두께: {est_thickness[0].numpy()} Å")
     print(confidence)
     print(f"실제 두께: {thicknesses} Å")
-    print(f"MAE: {np.mean(np.abs(est_thickness[0].numpy()[:len(thicknesses)] - thicknesses)):.2f} Å")
+    print(f"MAE: {np.mean(np.abs(est_thickness[0].numpy()[: len(thicknesses)] - thicknesses)):.2f} Å")

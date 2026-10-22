@@ -64,9 +64,7 @@ def get_density_profiles(
 
     sigmas = roughnesses * sqrt(2)
 
-    profiles = ambient + _get_erf(
-        z_axis[:, None], zs[..., None], sigmas[..., None], d_rhos[..., None]
-    ).sum(1)
+    profiles = ambient + _get_erf(z_axis[:, None], zs[..., None], sigmas[..., None], d_rhos[..., None]).sum(1)
 
     # d_profiles = _get_gauss(z_axis[:, None], zs[..., None], sigmas[..., None], d_rhos[..., None]).sum(1)
 
@@ -88,9 +86,7 @@ def get_reversed_params(thicknesses: Tensor, roughnesses: Tensor, slds: Tensor):
     )
     reversed_thicknesses = torch.flip(thicknesses, [-1])
     reversed_roughnesses = torch.flip(roughnesses, [-1])
-    reversed_params = torch.cat(
-        [reversed_thicknesses, reversed_roughnesses, reversed_slds], -1
-    )
+    reversed_params = torch.cat([reversed_thicknesses, reversed_roughnesses, reversed_slds], -1)
 
     return reversed_params
 
@@ -126,20 +122,14 @@ def get_param_labels(
             label = label + " " + unit_template % units
         return label
 
-    thickness_labels = [
-        _label_str(i, thickness_name, thickness_units) for i in range(num_layers)
-    ]
-    roughness_labels = [
-        _label_str(i, roughness_name, roughness_units) for i in range(num_layers + 1)
-    ]
+    thickness_labels = [_label_str(i, thickness_name, thickness_units) for i in range(num_layers)]
+    roughness_labels = [_label_str(i, roughness_name, roughness_units) for i in range(num_layers + 1)]
     sld_labels = [_label_str(i, sld_name, sld_units) for i in range(num_layers + 1)]
 
     return thickness_labels + roughness_labels + sld_labels
 
 
-def get_max_allowed_roughness(
-    thicknesses: Tensor, total_max_roughness: Tensor, coef: float = 1.0
-) -> Tensor:
+def get_max_allowed_roughness(thicknesses: Tensor, total_max_roughness: Tensor, coef: float = 1.0) -> Tensor:
     """
     Calculate max allowed roughness for each layer based on thicknesses and total max roughness.
 

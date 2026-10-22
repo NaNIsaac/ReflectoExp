@@ -16,10 +16,11 @@ from xrr_model import XRR1DRegressor
 # ---------------------------------------------------------
 # 1. Settings
 # ---------------------------------------------------------
-N_TRIALS = 50            # Total number of trials
+N_TRIALS = 50  # Total number of trials
 N_EPOCHS_PER_TRIAL = 15  # Epochs per trial (keep it lower than full training)
 STUDY_NAME = "xrr_optimization"
-STORAGE_URL = "sqlite:///xrr_tuning.db" # Saves results to a database file
+STORAGE_URL = "sqlite:///xrr_tuning.db"  # Saves results to a database file
+
 
 def get_dataloaders(batch_size):
     """
@@ -40,7 +41,7 @@ def get_dataloaders(batch_size):
         "n_points": CONFIG["simulation"]["q_points"],
         "augment": True,
         "aug_prob": 0.5,
-        "min_scan_range": 0.15
+        "min_scan_range": 0.15,
     }
 
     train_set = XRR1LayerDataset(**dataset_kwargs, mode="train")
@@ -51,6 +52,7 @@ def get_dataloaders(batch_size):
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
     return train_loader, val_loader
+
 
 def objective(trial):
     # ---------------------------------------------------------
@@ -65,7 +67,7 @@ def objective(trial):
     # Optimization
     lr = trial.suggest_float("lr", 1e-5, 1e-2, log=True)
     weight_decay = trial.suggest_float("weight_decay", 1e-6, 1e-3, log=True)
-    batch_size = trial.suggest_categorical("batch_size", [32, 64, 128]) # Keep max low to avoid OOM
+    batch_size = trial.suggest_categorical("batch_size", [32, 64, 128])  # Keep max low to avoid OOM
 
     # ---------------------------------------------------------
     # 3. Setup (Model, Data, Optimizer)
@@ -85,7 +87,7 @@ def objective(trial):
         n_channels=n_channels,
         depth=depth,
         mlp_hidden=mlp_hidden,
-        dropout=dropout
+        dropout=dropout,
     ).to(device)
 
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -104,7 +106,7 @@ def objective(trial):
 
             optimizer.zero_grad(set_to_none=True)
 
-            with torch.amp.autocast('cuda'):
+            with torch.amp.autocast("cuda"):
                 preds = model(inputs)
                 loss = criterion(preds, targets)
 
@@ -132,11 +134,12 @@ def objective(trial):
 
         # Handle Pruning (if the trial is hopeless, stop it)
         if trial.should_prune():
-            print(f"[Trial {trial.number}] Pruned at epoch {epoch+1} (Loss: {avg_val_loss:.4f})")
+            print(f"[Trial {trial.number}] Pruned at epoch {epoch + 1} (Loss: {avg_val_loss:.4f})")
             raise optuna.TrialPruned()
 
     # Return the metric to minimize
     return avg_val_loss
+
 
 def save_best_config(study):
     """Saves the best hyperparameters to a JSON file."""
@@ -152,6 +155,7 @@ def save_best_config(study):
         json.dump(best_params, f, indent=4)
     print(f"\nSaved best parameters to: {save_path}")
 
+
 if __name__ == "__main__":
     # Clear memory before starting
     gc.collect()
@@ -161,13 +165,7 @@ if __name__ == "__main__":
     pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=3)
 
     # Create Study
-    study = optuna.create_study(
-        study_name=STUDY_NAME,
-        storage=STORAGE_URL,
-        direction="minimize",
-        pruner=pruner,
-        load_if_exists=True
-    )
+    study = optuna.create_study(study_name=STUDY_NAME, storage=STORAGE_URL, direction="minimize", pruner=pruner, load_if_exists=True)
 
     print(f"Starting optimization with {N_TRIALS} trials...")
 

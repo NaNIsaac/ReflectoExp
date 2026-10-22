@@ -9,11 +9,7 @@ from reflecto_exp.simulate.simul_genx import ParamSet
 
 
 def run_xrr_analysis(
-    data_path: str | Path,
-    weights_dir: str | Path,
-    inference_engine: XRRInferenceEngine | None = None,
-    verbose: bool = True,
-    show_plot: bool = True
+    data_path: str | Path, weights_dir: str | Path, inference_engine: XRRInferenceEngine | None = None, verbose: bool = True, show_plot: bool = True
 ) -> dict:
     """
     단일 XRR 데이터 파일에 대해 [로드 -> NN 추론 -> GenX 피팅] 파이프라인을 실행합니다.
@@ -41,9 +37,9 @@ def run_xrr_analysis(
     weights_dir = Path(weights_dir)
 
     if verbose:
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print(f"🚀 XRR Analysis Pipeline: {data_path.name}")
-        print("="*60)
+        print("=" * 60)
 
     # ---------------------------------------------------------
     # 1. 데이터 로드 (Data Loading)
@@ -99,25 +95,19 @@ def run_xrr_analysis(
     # 4. 결과 정리 및 시각화
     # ---------------------------------------------------------
     if verbose:
-        print("\n" + "-"*40)
+        print("\n" + "-" * 40)
         print("FINAL ANALYSIS RESULT")
-        print("-"*40)
+        print("-" * 40)
         for param_name, value in final_results.items():
             print(f"{param_name:15s}: {value:.4f}")
-        print("="*40)
+        print("=" * 40)
 
     if show_plot:
         fitter.plot()
 
     # 결과 반환
-    return {
-        "nn_preds": preds,
-        "final_params": final_results,
-        "fitter": fitter,
-        "q": q_raw,
-        "R_measured": R_raw,
-        "R_fit": fitter.model.data[0].y_sim
-    }
+    return {"nn_preds": preds, "final_params": final_results, "fitter": fitter, "q": q_raw, "R_measured": R_raw, "R_fit": fitter.model.data[0].y_sim}
+
 
 # =========================================================
 # 사용 예시 (Main)
@@ -129,12 +119,7 @@ def main():
 
     try:
         # 함수 호출
-        result = run_xrr_analysis(
-            data_path=target_file,
-            weights_dir=weights_path,
-            verbose=True,
-            show_plot=True
-        )
+        result = run_xrr_analysis(data_path=target_file, weights_dir=weights_path, verbose=True, show_plot=True)
 
         # 결과 데이터 활용 예시
         print(f"최종 피팅된 두께: {result['final_params']['f_d']:.2f} Å")

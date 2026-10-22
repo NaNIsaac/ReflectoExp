@@ -14,9 +14,9 @@ def to_f(sld_val):
 class Sim_Vars:
     def __init__(self):
         # Film (AI Guess)
-        self.f_d   = {init_params['f_d']}
-        self.f_sig = {init_params['f_sig']}
-        self.f_sld = {init_params['f_sld']}
+        self.f_d   = {init_params["f_d"]}
+        self.f_sig = {init_params["f_sig"]}
+        self.f_sld = {init_params["f_sld"]}
 
         # SiO2 (Fixed/Guess)
         self.s_d   = 15.0
@@ -25,8 +25,8 @@ class Sim_Vars:
 
         # Instrument
         self.i0    = 1.0
-        self.s_len = {init_params['s_len']}
-        self.beam_w = {init_params['beam_w']}
+        self.s_len = {init_params["s_len"]}
+        self.beam_w = {init_params["beam_w"]}
 
     # =================================================================
     # [FIX] GenX requires BOTH Setters AND Getters for every parameter

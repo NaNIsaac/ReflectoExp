@@ -14,6 +14,7 @@ class GenXFitter:
     - Input: Readable SLD values (e.g., 2.07, 18.8)
     - Internal: Automatically handles physical unit conversion (1e-6 * r_e)
     """
+
     def __init__(self, q: np.ndarray, R: np.ndarray, film_params: ParamSet, sio2_params: ParamSet):
         """
         Args:
@@ -221,12 +222,12 @@ def Sim(data):
         R_sim = self.model.data[0].y_sim
 
         plt.figure(figsize=(8, 6))
-        plt.plot(q, R_meas, 'ko', label='Measured', markersize=4, alpha=0.6)
-        plt.plot(q, R_sim, 'r-', label='GenX Fit', linewidth=2)
-        plt.yscale('log')
-        plt.xlabel(r'q [$\AA^{-1}$]')
-        plt.ylabel('Reflectivity')
-        plt.title(f'GenX Fit Result (FOM: {self.model.fom:.4e})')
+        plt.plot(q, R_meas, "ko", label="Measured", markersize=4, alpha=0.6)
+        plt.plot(q, R_sim, "r-", label="GenX Fit", linewidth=2)
+        plt.yscale("log")
+        plt.xlabel(r"q [$\AA^{-1}$]")
+        plt.ylabel("Reflectivity")
+        plt.title(f"GenX Fit Result (FOM: {self.model.fom:.4e})")
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.show()

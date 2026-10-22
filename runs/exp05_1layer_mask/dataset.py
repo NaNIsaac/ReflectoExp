@@ -12,11 +12,8 @@ class XRRPreprocessor:
     Shared class for XRR data preprocessing and inverse transformation.
     (Used by both Dataset and InferenceEngine)
     """
-    def __init__(self,
-        qs: np.ndarray,
-        stats_file: Path | str | None = None,
-        device: torch.device = torch.device('cpu')
-    ):
+
+    def __init__(self, qs: np.ndarray, stats_file: Path | str | None = None, device: torch.device = torch.device("cpu")):
         # 1. Set up Master Grid
         self.target_q = qs
         self.device = device
@@ -43,7 +40,7 @@ class XRRPreprocessor:
         # 2. Normalize (Max=1.0) -> Log Scale
         R_max = np.max(R_raw)
         if R_max <= 0:
-            R_max = 1.0 # 0 나누기 방지
+            R_max = 1.0  # 0 나누기 방지
 
         R_norm = R_raw / R_max
         R_log = np.log10(np.maximum(R_norm, 1e-15))
@@ -105,10 +102,19 @@ class XRR1LayerDataset(Dataset):
     """
 
     def __init__(
-        self, qs: np.ndarray, h5_file: str | Path, stats_file: str | Path,
-        mode: str = "train", val_ratio: float = 0.2, test_ratio: float = 0.1,
-        augment: bool = False, expand_factor: int = 1, aug_prob: float = 0.5,
-        min_scan_range: float = 0.15, q_shift_sigma: float = 0.002, intensity_scale: float = 0.1
+        self,
+        qs: np.ndarray,
+        h5_file: str | Path,
+        stats_file: str | Path,
+        mode: str = "train",
+        val_ratio: float = 0.2,
+        test_ratio: float = 0.1,
+        augment: bool = False,
+        expand_factor: int = 1,
+        aug_prob: float = 0.5,
+        min_scan_range: float = 0.15,
+        q_shift_sigma: float = 0.002,
+        intensity_scale: float = 0.1,
     ):
 
         self.h5_path = Path(h5_file)
@@ -117,16 +123,12 @@ class XRR1LayerDataset(Dataset):
 
         # Grid & Augmentation
         self.target_q = qs
-        self.augment = augment and (mode == 'train')
-        self.expand_factor = expand_factor if (mode == 'train') else 1
+        self.augment = augment and (mode == "train")
+        self.expand_factor = expand_factor if (mode == "train") else 1
         self.min_scan_range = min_scan_range
         self.aug_prob = aug_prob
         if self.augment:
-            self.physics_augmenter = XRRAugmentations(
-                intensity_noise_scale=intensity_scale,
-                q_shift_sigma=q_shift_sigma,
-                prob=aug_prob
-            )
+            self.physics_augmenter = XRRAugmentations(intensity_noise_scale=intensity_scale, q_shift_sigma=q_shift_sigma, prob=aug_prob)
 
         self.hf: h5py.File | None = None
         # Load Data
@@ -138,7 +140,7 @@ class XRR1LayerDataset(Dataset):
         # Setup Normalization Statistics
         self.processor = XRRPreprocessor(self.target_q)
 
-        if mode == 'train' and not self.stats_path.exists():
+        if mode == "train" and not self.stats_path.exists():
             self._calculate_and_save_stats()
 
         # self._setup_param_stats()
@@ -160,20 +162,15 @@ class XRR1LayerDataset(Dataset):
     def _calculate_and_save_stats(self):
         """Calculate normalization stats on training subset."""
         print(f"[{self.mode}] Calculating statistics...")
-        idx = range(self.train_end) # Use only training part
+        idx = range(self.train_end)  # Use only training part
 
-        params_list = [
-            self.thickness[idx], self.roughness[idx], self.sld[idx]
-        ]
+        params_list = [self.thickness[idx], self.roughness[idx], self.sld[idx]]
 
         params = np.stack(params_list, axis=1)
         mean = np.mean(params, axis=0)
         std = np.std(params, axis=0) + 1e-8
 
-        torch.save({
-            "param_mean": torch.from_numpy(mean),
-            "param_std": torch.from_numpy(std)
-        }, self.stats_path)
+        torch.save({"param_mean": torch.from_numpy(mean), "param_std": torch.from_numpy(std)}, self.stats_path)
 
     def _setup_split(self, val_ratio, test_ratio):
         """Split indices for Train/Val/Test"""
@@ -215,7 +212,7 @@ class XRR1LayerDataset(Dataset):
 
     def _get_raw_data_lazy(self, idx):
         if self.hf is None:
-            self.hf = h5py.File(self.h5_path, 'r', swmr=True)
+            self.hf = h5py.File(self.h5_path, "r", swmr=True)
 
         R_raw = self.hf["R"][idx]
         q_raw = self.source_q[idx] if self.source_q.ndim == 2 else self.source_q

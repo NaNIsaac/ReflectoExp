@@ -33,34 +33,23 @@ def abeles_memory_eff(
     thickness_prev_layer = 1.0  # ambient
 
     for interface_num in range(num_interfaces):
-
         prev_layer_idx = interface_num - 1
         next_layer_idx = interface_num
 
         if interface_num == 0:
-            k_z_previous_layer = _get_relative_k_z(
-                k_z0, torch.zeros(batch_size, 1).to(sld)
-            )
+            k_z_previous_layer = _get_relative_k_z(k_z0, torch.zeros(batch_size, 1).to(sld))
         else:
             thickness_prev_layer = thickness[:, prev_layer_idx].unsqueeze(1)
-            k_z_previous_layer = _get_relative_k_z(
-                k_z0, sld[:, prev_layer_idx].unsqueeze(1)
-            )
+            k_z_previous_layer = _get_relative_k_z(k_z0, sld[:, prev_layer_idx].unsqueeze(1))
 
-        k_z_next_layer = _get_relative_k_z(
-            k_z0, sld[:, next_layer_idx].unsqueeze(1)
-        )  # (batch_num, q_num)
+        k_z_next_layer = _get_relative_k_z(k_z0, sld[:, next_layer_idx].unsqueeze(1))  # (batch_num, q_num)
 
-        reflection_matrix = _make_reflection_matrix(
-            k_z_previous_layer, k_z_next_layer, roughness[:, interface_num].unsqueeze(1)
-        )
+        reflection_matrix = _make_reflection_matrix(k_z_previous_layer, k_z_next_layer, roughness[:, interface_num].unsqueeze(1))
 
         if interface_num == 0:
             total_reflectivity_matrix = reflection_matrix
         else:
-            translation_matrix = _make_translation_matrix(
-                k_z_previous_layer, thickness_prev_layer
-            )
+            translation_matrix = _make_translation_matrix(k_z_previous_layer, thickness_prev_layer)
 
             total_reflectivity_matrix = torch.einsum(
                 "bnmr, bmlr, bljr -> bnjr",
@@ -81,15 +70,11 @@ def _get_relative_k_z(k_z0, scattering_length_density):
 
 
 def _make_reflection_matrix(k_z_previous_layer, k_z_next_layer, interface_roughness):
-    p = _safe_div(
-        (k_z_previous_layer + k_z_next_layer), (2 * k_z_previous_layer)
-    ) * torch.exp(
+    p = _safe_div((k_z_previous_layer + k_z_next_layer), (2 * k_z_previous_layer)) * torch.exp(
         -((k_z_previous_layer - k_z_next_layer) ** 2) * 0.5 * interface_roughness**2
     )
 
-    m = _safe_div(
-        (k_z_previous_layer - k_z_next_layer), (2 * k_z_previous_layer)
-    ) * torch.exp(
+    m = _safe_div((k_z_previous_layer - k_z_next_layer), (2 * k_z_previous_layer)) * torch.exp(
         -((k_z_previous_layer + k_z_next_layer) ** 2) * 0.5 * interface_roughness**2
     )
 
@@ -116,6 +101,4 @@ def _make_translation_matrix(k_z, thickness):
 
 
 def _safe_div(numerator, denominator):
-    return torch.where(
-        denominator == 0, numerator, torch.divide(numerator, denominator)
-    )
+    return torch.where(denominator == 0, numerator, torch.divide(numerator, denominator))

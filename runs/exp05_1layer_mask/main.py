@@ -52,42 +52,30 @@ def get_dataloaders(qs: np.ndarray, config: dict, h5_file: Path, stats_file: Pat
         "val_ratio": config["training"]["val_ratio"],
         "test_ratio": config["training"]["test_ratio"],
         "augment": True,
-        "expand_factor" : config["training"]["expand_factor"],
-        "aug_prob" : config["training"]["aug_prob"],
-        "min_scan_range" : 0.15,
-        "q_shift_sigma" : config["training"]["q_shift_sigma"],
-        "intensity_scale" : config["training"]["intensity_scale"]
+        "expand_factor": config["training"]["expand_factor"],
+        "aug_prob": config["training"]["aug_prob"],
+        "min_scan_range": 0.15,
+        "q_shift_sigma": config["training"]["q_shift_sigma"],
+        "intensity_scale": config["training"]["intensity_scale"],
     }
 
     # Create Dataset instances
     train_set = XRR1LayerDataset(**dataset_kwargs, mode="train")
-    val_set   = XRR1LayerDataset(**dataset_kwargs, mode="val")
-    test_set  = XRR1LayerDataset(**dataset_kwargs, mode="test")
+    val_set = XRR1LayerDataset(**dataset_kwargs, mode="val")
+    test_set = XRR1LayerDataset(**dataset_kwargs, mode="test")
 
     # Create DataLoaders
     batch_size = config["training"]["batch_size"]
     num_workers = config["training"]["num_workers"]
 
     train_loader = DataLoader(
-        train_set,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=num_workers,
-        pin_memory=True if torch.cuda.is_available() else False
+        train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True if torch.cuda.is_available() else False
     )
     val_loader = DataLoader(
-        val_set,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True if torch.cuda.is_available() else False
+        val_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True if torch.cuda.is_available() else False
     )
     test_loader = DataLoader(
-        test_set,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=num_workers,
-        pin_memory=True if torch.cuda.is_available() else False
+        test_set, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True if torch.cuda.is_available() else False
     )
 
     print(f"Dataset sizes: Train={len(train_set)}, Val={len(val_set)}, Test={len(test_set)}")
@@ -116,10 +104,8 @@ def main():
     config_file_json = exp_dir / "config.json"
     qs_file_npy = exp_dir / "qs.npy"
     qs: np.ndarray = powerspace(
-        CONFIG["simulation"]["q_min"],
-        CONFIG["simulation"]["q_max"],
-        CONFIG["simulation"]["q_points"],
-        CONFIG["simulation"]["power"])
+        CONFIG["simulation"]["q_min"], CONFIG["simulation"]["q_max"], CONFIG["simulation"]["q_points"], CONFIG["simulation"]["power"]
+    )
 
     np.save(qs_file_npy, qs)
     print(f"qs file saved at '{qs_file_npy}'")
@@ -154,7 +140,7 @@ def main():
         save_dir=exp_dir,
         lr=CONFIG["training"]["lr"],
         weight_decay=CONFIG["training"]["weight_decay"],
-        patience=CONFIG["training"]["patience"]
+        patience=CONFIG["training"]["patience"],
     )
 
     print("Starting training...")
@@ -165,21 +151,16 @@ def main():
         print(f"last_checkpoint_file: '{last_checkpoint_file}' has not found")
         trainer.train(CONFIG["training"]["epochs"])
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Performing Final Test Evaluation")
-    print("="*50)
+    print("=" * 50)
 
     if not checkpoint_file.exists():
         print(f"No checkpoint found at {checkpoint_file}. Skipping evaluation.")
         return
 
     evaluate_pipeline(
-        test_loader=test_loader,
-        checkpoint_path=checkpoint_file,
-        stats_path=stats_file,
-        qs=qs,
-        output_dir=exp_dir,
-        calc_physics_fom=True
+        test_loader=test_loader, checkpoint_path=checkpoint_file, stats_path=stats_file, qs=qs, output_dir=exp_dir, calc_physics_fom=True
     )
 
 

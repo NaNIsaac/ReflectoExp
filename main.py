@@ -24,6 +24,7 @@ def get_venv_python() -> Path:
 
     return venv_python
 
+
 def find_exp_folder(exp_num: int, runs_dir_path: Path = Path("./runs")) -> Path:
     """
     runs 폴더 내에서 exp{num} 또는 exp0{num}으로 시작하는 폴더를 찾습니다.
@@ -52,6 +53,7 @@ def find_exp_folder(exp_num: int, runs_dir_path: Path = Path("./runs")) -> Path:
 
     return found_folder
 
+
 def run_main(target_folder: Path):
     """
     찾은 폴더 내부의 main.py를 가상환경 Python으로 실행합니다.
@@ -72,15 +74,16 @@ def run_main(target_folder: Path):
         subprocess.run(
             [str(venv_python), "main.py"],
             cwd=target_folder,  # 작업 디렉토리를 해당 실험 폴더로 변경
-            check=True
+            check=True,
         )
     except subprocess.CalledProcessError as e:
         print("-" * 50)
         print(f"💥 [Fail] 실행 중 오류 발생 (Exit code: {e.returncode})")
 
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run experiment based on ID')
-    parser.add_argument('exp_num', type=int, help='Experiment number (e.g., 5)')
+    parser = argparse.ArgumentParser(description="Run experiment based on ID")
+    parser.add_argument("exp_num", type=int, help="Experiment number (e.g., 5)")
 
     args = parser.parse_args()
 

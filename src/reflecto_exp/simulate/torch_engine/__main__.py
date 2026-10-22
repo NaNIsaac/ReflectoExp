@@ -12,13 +12,7 @@ roughness = torch.tensor([[3.0, 2.0]]).to(device)
 sld = torch.tensor([[20.0, 10.0, 0.0]]).to(device)
 
 # 2. 시뮬레이션 실행
-R = simulate_reflectivity(
-    q=q,
-    thickness=thickness,
-    roughness=roughness,
-    sld=sld,
-    dq_q=torch.tensor([[0.02]]).to(device)
-)
+R = simulate_reflectivity(q=q, thickness=thickness, roughness=roughness, sld=sld, dq_q=torch.tensor([[0.02]]).to(device))
 
 R_numpy = R.detach().cpu().numpy()
 q_numpy = q.detach().cpu().numpy()

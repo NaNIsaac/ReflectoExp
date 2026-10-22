@@ -22,6 +22,7 @@ apply_origin_style()
 # 유니코드 위첨자는 mathtext 폰트에 글리프가 없어 경고가 나므로 mathtext로 표기
 PARAM_NAMES = ["Thickness (Å)", "Roughness (Å)", r"SLD (10$^{-6}$ Å$^{-2}$)"]
 
+
 # -----------------------------------------------------------------------------
 # 1. Advanced Metrics
 # -----------------------------------------------------------------------------
@@ -31,23 +32,25 @@ def calculate_r2(true, pred):
     ss_tot = np.sum((true - np.mean(true, axis=0)) ** 2, axis=0)
     return 1 - (ss_res / (ss_tot + 1e-8))
 
+
 def calculate_metrics(preds: np.ndarray, targets: np.ndarray) -> dict:
     errors = preds - targets
     abs_errors = np.abs(errors)
 
     mae = np.mean(abs_errors, axis=0)
-    rmse = np.sqrt(np.mean(errors ** 2, axis=0))
+    rmse = np.sqrt(np.mean(errors**2, axis=0))
     mape = np.mean(abs_errors / (np.abs(targets) + 1e-6), axis=0) * 100
     r2 = calculate_r2(targets, preds)
 
     return {
         "errors": errors,
-        "abs_errors": abs_errors, # For finding worst cases
+        "abs_errors": abs_errors,  # For finding worst cases
         "mae": mae,
         "rmse": rmse,
         "mape": mape,
-        "r2": r2
+        "r2": r2,
     }
+
 
 # -----------------------------------------------------------------------------
 # 2. Reporting & Saving
@@ -56,8 +59,9 @@ def save_results_csv(df: pd.DataFrame, save_path: Path):
     if not save_path:
         return
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(save_path, index=False, encoding='utf-8-sig')
+    df.to_csv(save_path, index=False, encoding="utf-8-sig")
     print(f"[Save] CSV Report: {save_path.name}")
+
 
 def save_worst_cases(df: pd.DataFrame, abs_errors: np.ndarray, save_path: Path, top_k=50):
     """가장 에러가 큰 샘플들의 정보를 저장"""
@@ -72,21 +76,19 @@ def save_worst_cases(df: pd.DataFrame, abs_errors: np.ndarray, save_path: Path, 
     worst_df = df.iloc[worst_indices].copy()
     worst_df.insert(0, "Sample_ID", worst_indices)
 
-    worst_df.to_csv(save_path, index=False, encoding='utf-8-sig')
+    worst_df.to_csv(save_path, index=False, encoding="utf-8-sig")
     print(f"[Save] Worst Cases Log: {save_path.name}")
     return worst_indices
+
 
 def print_metrics_table(metrics: dict, param_names: list):
     print("\n" + "=" * 80)
     print(f"{'Parameter':<20} | {'MAE':<10} | {'RMSE':<10} | {'MAPE (%)':<10} | {'R²':<10}")
     print("-" * 80)
     for i, name in enumerate(param_names):
-        print(
-            f"{name:<20} | {metrics['mae'][i]:<10.4f} | "
-            f"{metrics['rmse'][i]:<10.4f} | {metrics['mape'][i]:<10.2f} | "
-            f"{metrics['r2'][i]:<10.4f}"
-        )
+        print(f"{name:<20} | {metrics['mae'][i]:<10.4f} | {metrics['rmse'][i]:<10.4f} | {metrics['mape'][i]:<10.2f} | {metrics['r2'][i]:<10.4f}")
     print("=" * 80)
+
 
 # -----------------------------------------------------------------------------
 # 3. Visualization (The Ultimate Plotter)
@@ -97,12 +99,10 @@ def _outside_note(ax, frac: float, loc: str = "lower right"):
         return
     x, ha = (0.99, "right") if "right" in loc else (0.01, "left")
     y, va = (0.02, "bottom") if "lower" in loc else (0.98, "top")
-    ax.text(x, y, f"{frac:.1f}% outside axes", transform=ax.transAxes,
-            ha=ha, va=va, fontsize=9, color=INK)
+    ax.text(x, y, f"{frac:.1f}% outside axes", transform=ax.transAxes, ha=ha, va=va, fontsize=9, color=INK)
 
 
-def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path,
-                          title_prefix: str = "", clip_axes: bool = False):
+def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path, title_prefix: str = "", clip_axes: bool = False):
     """
     clip_axes=True면 소수의 큰 이상치가 축을 늘려 본체를 뭉개는 것을 막는다.
     parity는 참값 범위로, 오차 히스토그램은 0.5-99.5 퍼센타일로 자르고
@@ -115,7 +115,7 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path,
     fig, axes = plt.subplots(2, n_params, figsize=(5.2 * n_params, 9))
 
     for i, name in enumerate(param_names):
-        clean = name.split(' (')[0]
+        clean = name.split(" (")[0]
         y_true = df[f"{clean}_True"].values
         y_pred = df[f"{clean}_Pred"].values
         err = df[f"{clean}_Error"].values
@@ -126,16 +126,15 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path,
         min_v = min(y_true.min(), y_pred.min())
         max_v = max(y_true.max(), y_pred.max())
 
-        ax_s.scatter(y_true, y_pred, s=10, facecolor=color, edgecolor='none', alpha=0.35)
-        ax_s.plot([min_v, max_v], [min_v, max_v], color=INK, lw=1.2, linestyle='--',
-                  label='1:1')
+        ax_s.scatter(y_true, y_pred, s=10, facecolor=color, edgecolor="none", alpha=0.35)
+        ax_s.plot([min_v, max_v], [min_v, max_v], color=INK, lw=1.2, linestyle="--", label="1:1")
 
         # 지표는 항상 전체 데이터로 계산한다 - 축만 자른다
         r2 = calculate_r2(y_true, y_pred)
         ax_s.set_title(f"{name}    $R^2$ = {r2:.4f}")
         ax_s.set_xlabel("Ground truth")
         ax_s.set_ylabel("Prediction")
-        ax_s.legend(loc='upper left')
+        ax_s.legend(loc="upper left")
 
         if clip_axes:
             span = y_true.max() - y_true.min()
@@ -143,7 +142,7 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path,
             outside = np.mean((y_pred < lo) | (y_pred > hi)) * 100
             ax_s.set_xlim(lo, hi)
             ax_s.set_ylim(lo, hi)
-            ax_s.set_aspect('equal', adjustable='box')
+            ax_s.set_aspect("equal", adjustable="box")
             _outside_note(ax_s, outside)
 
         # 2. Error histogram
@@ -156,16 +155,14 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path,
             pad = 0.05 * (hi_e - lo_e)
             hist_range = (lo_e - pad, hi_e + pad)
 
-        ax_h.hist(err, bins=60, density=True, range=hist_range,
-                  color=color, edgecolor=INK, linewidth=0.5)
-        ax_h.axvline(0, color=INK, linestyle='--', linewidth=1.2)
-        ax_h.axvline(mu, color=INK, linestyle=':', linewidth=1.2,
-                     label=f"Mean {mu:.2f}, SD {sigma:.2f}")
+        ax_h.hist(err, bins=60, density=True, range=hist_range, color=color, edgecolor=INK, linewidth=0.5)
+        ax_h.axvline(0, color=INK, linestyle="--", linewidth=1.2)
+        ax_h.axvline(mu, color=INK, linestyle=":", linewidth=1.2, label=f"Mean {mu:.2f}, SD {sigma:.2f}")
 
         ax_h.set_title("Error distribution")
         ax_h.set_xlabel("Error (pred − true)")
         ax_h.set_ylabel("Density")
-        ax_h.legend(loc='upper right')
+        ax_h.legend(loc="upper right")
 
         if hist_range is not None:
             ax_h.set_xlim(*hist_range)
@@ -175,7 +172,7 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path,
     if title_prefix:
         fig.suptitle(title_prefix, fontsize=14, y=1.01)
     plt.tight_layout()
-    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"[Save] Correlation Plot: {save_path.name}")
 
@@ -198,15 +195,12 @@ def save_history_plot(history: dict, save_path: Path, title_prefix: str = ""):
     style_axes(ax_lr)
 
     if train:
-        ax_loss.plot(epochs[:len(train)], train, label="Train",
-                     color=ORIGIN_COLORS[0], lw=1.5)
+        ax_loss.plot(epochs[: len(train)], train, label="Train", color=ORIGIN_COLORS[0], lw=1.5)
     if val:
-        ax_loss.plot(epochs[:len(val)], val, label="Validation",
-                     color=ORIGIN_COLORS[1], lw=1.5)
+        ax_loss.plot(epochs[: len(val)], val, label="Validation", color=ORIGIN_COLORS[1], lw=1.5)
         best_epoch = int(np.argmin(val)) + 1
         best_val = float(np.min(val))
-        ax_loss.plot([best_epoch], [best_val], marker="o", ms=8, mfc="none",
-                     mec=INK, mew=1.2, ls="none", label=f"Best (E{best_epoch})")
+        ax_loss.plot([best_epoch], [best_val], marker="o", ms=8, mfc="none", mec=INK, mew=1.2, ls="none", label=f"Best (E{best_epoch})")
         ax_loss.set_title(f"Loss curve    best val = {best_val:.6f}")
     else:
         ax_loss.set_title("Loss curve")
@@ -217,7 +211,7 @@ def save_history_plot(history: dict, save_path: Path, title_prefix: str = ""):
     ax_loss.legend(loc="upper right")
 
     if lrs:
-        ax_lr.plot(epochs[:len(lrs)], lrs, color=ORIGIN_COLORS[3], lw=1.5)
+        ax_lr.plot(epochs[: len(lrs)], lrs, color=ORIGIN_COLORS[3], lw=1.5)
         ax_lr.set_yscale("log")
     ax_lr.set_xlabel("Epoch")
     ax_lr.set_ylabel("Learning rate")
@@ -232,8 +226,7 @@ def save_history_plot(history: dict, save_path: Path, title_prefix: str = ""):
     print(f"[Save] History Plot: {save_path.name}")
 
 
-def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None,
-                       title_prefix: str = ""):
+def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None, title_prefix: str = ""):
     """
     파라미터 조합(Thickness vs Roughness)에 따른 예측 난이도(MAE) 시각화
     """
@@ -243,20 +236,14 @@ def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None,
 
     # 분석용 임시 복사본 생성 및 절대 오차 계산
     plot_df = df.copy()
-    plot_df['Abs_Thick_Err'] = plot_df['Thickness_Error'].abs()
+    plot_df["Abs_Thick_Err"] = plot_df["Thickness_Error"].abs()
 
     # 구간 생성 (pd.cut 사용)
-    plot_df['Thick_Bin'] = pd.cut(plot_df['Thickness_True'], bins=n_bins).apply(lambda x: int(x.mid))
-    plot_df['Rough_Bin'] = pd.cut(plot_df['Roughness_True'], bins=n_bins).apply(lambda x: int(x.mid))
+    plot_df["Thick_Bin"] = pd.cut(plot_df["Thickness_True"], bins=n_bins).apply(lambda x: int(x.mid))
+    plot_df["Rough_Bin"] = pd.cut(plot_df["Roughness_True"], bins=n_bins).apply(lambda x: int(x.mid))
 
     # 2. 피벗 테이블 생성 (Index: Roughness, Columns: Thickness, Values: MAE)
-    pivot_table = plot_df.pivot_table(
-        values='Abs_Thick_Err',
-        index='Rough_Bin',
-        columns='Thick_Bin',
-        aggfunc='mean',
-        observed=False
-    )
+    pivot_table = plot_df.pivot_table(values="Abs_Thick_Err", index="Rough_Bin", columns="Thick_Bin", aggfunc="mean", observed=False)
 
     # 물리적 직관을 위해 Index 정렬 (Roughness가 위로 갈수록 커지게)
     pivot_table = pivot_table.sort_index(ascending=False)
@@ -269,10 +256,10 @@ def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None,
         pivot_table,
         annot=True,
         fmt=".2f",
-        cmap='Reds',
-        cbar_kws={'label': 'Mean absolute error (Å)'},
-        linewidths=.5,
-        linecolor='white',
+        cmap="Reds",
+        cbar_kws={"label": "Mean absolute error (Å)"},
+        linewidths=0.5,
+        linecolor="white",
         ax=ax,
     )
 
@@ -290,7 +277,7 @@ def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None,
 
     # 4. 물리적 해석 가이드라인 추가
     if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"[Save] Error Heatmap: {save_path.name}")
 
     plt.close()
@@ -302,12 +289,12 @@ def plot_single_curve(ax_main, ax_res, qs, R_true, R_pred, title):
     style_axes(ax_res)
 
     # 측정값은 검은 실선(참조), 재구성은 계열 색 파선
-    ax_main.plot(qs, R_true, color=INK, lw=1.2, label='Ground truth')
-    ax_main.plot(qs, R_pred, color=ORIGIN_COLORS[0], lw=1.2, ls='--', label='AI recon.')
-    ax_main.set_yscale('log')
+    ax_main.plot(qs, R_true, color=INK, lw=1.2, label="Ground truth")
+    ax_main.plot(qs, R_pred, color=ORIGIN_COLORS[0], lw=1.2, ls="--", label="AI recon.")
+    ax_main.set_yscale("log")
     ax_main.set_xticklabels([])
-    ax_main.set_ylabel('Reflectivity')
-    ax_main.legend(loc='upper right', fontsize=9)
+    ax_main.set_ylabel("Reflectivity")
+    ax_main.legend(loc="upper right", fontsize=9)
     ax_main.set_title(title, fontsize=10)
 
     # Residuals (Log Difference)
@@ -316,24 +303,21 @@ def plot_single_curve(ax_main, ax_res, qs, R_true, R_pred, title):
     diff = log_pred - log_true
 
     ax_res.plot(qs, diff, color=ORIGIN_COLORS[1], lw=1.0)
-    ax_res.axhline(0, color=INK, linestyle='--', lw=1.0)
+    ax_res.axhline(0, color=INK, linestyle="--", lw=1.0)
     ax_res.set_ylim(-2, 2)
     ax_res.set_ylabel(r"$\Delta$ log$R$", fontsize=9)
     ax_res.set_xlabel(r"$q$ ($\AA^{-1}$)", fontsize=10)
 
+
 def save_advanced_reconstruction(
-    preds: np.ndarray, targets: np.ndarray, qs: np.ndarray,
-    save_path: Path, worst_indices: np.ndarray | None = None, n_random: int = 3
+    preds: np.ndarray, targets: np.ndarray, qs: np.ndarray, save_path: Path, worst_indices: np.ndarray | None = None, n_random: int = 3
 ):
     if not save_path:
         return
 
     # Selection: Top 3 Worst Cases + 3 Random Cases
     if worst_indices is not None and len(worst_indices) >= 3:
-        target_indices = np.concatenate([
-            worst_indices[:3],
-            np.random.choice(len(preds), n_random, replace=False)
-        ])
+        target_indices = np.concatenate([worst_indices[:3], np.random.choice(len(preds), n_random, replace=False)])
         labels = ["Worst #1", "Worst #2", "Worst #3", "Random A", "Random B", "Random C"]
     else:
         target_indices = np.random.choice(len(preds), 6, replace=False)
@@ -347,9 +331,7 @@ def save_advanced_reconstruction(
 
     for i, idx in enumerate(target_indices):
         # Create inner grid for Main + Residual
-        inner_grid = gridspec.GridSpecFromSubplotSpec(
-            2, 1, subplot_spec=outer_grid[i], height_ratios=[3, 1], hspace=0.05
-        )
+        inner_grid = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=outer_grid[i], height_ratios=[3, 1], hspace=0.05)
         ax_main = plt.Subplot(fig, inner_grid[0])
         ax_res = plt.Subplot(fig, inner_grid[1])
         fig.add_subplot(ax_main)
@@ -360,9 +342,9 @@ def save_advanced_reconstruction(
         p_p = preds[idx]
 
         # Physical Constraints for simulation
-        p_p[0] = max(p_p[0], 1.0) # Thickness > 1
-        p_p[1] = max(p_p[1], 0.0) # Roughness > 0
-        p_p[2] = max(p_p[2], 0.0) # SLD > 0
+        p_p[0] = max(p_p[0], 1.0)  # Thickness > 1
+        p_p[1] = max(p_p[1], 0.0)  # Roughness > 0
+        p_p[2] = max(p_p[2], 0.0)  # SLD > 0
 
         # Simulation
         try:
@@ -380,9 +362,10 @@ def save_advanced_reconstruction(
 
         plot_single_curve(ax_main, ax_res, qs, R_true, R_pred, f"{header}\n{info}")
 
-    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"[Save] Reconstruction Plot: {save_path.name}")
+
 
 # -----------------------------------------------------------------------------
 # 4. Pipeline
@@ -391,13 +374,14 @@ def run_inference(model, loader, device):
     model.eval()
     preds, targets = [], []
     print(f"Running inference on {device}...")
-    with torch.inference_mode(): # Faster than no_grad
+    with torch.inference_mode():  # Faster than no_grad
         for X, y in tqdm(loader, desc="Inference", leave=False):
             X = X.to(device)
             pred = model(X)
             preds.append(pred.cpu())
             targets.append(y)
     return torch.cat(preds), torch.cat(targets)
+
 
 def evaluate_pipeline(
     test_loader: DataLoader,
@@ -406,7 +390,7 @@ def evaluate_pipeline(
     qs: np.ndarray,
     report_img_path: Path | None = None,
     report_csv_path: Path | None = None,
-    report_history_path: Path | None = None
+    report_history_path: Path | None = None,
 ):
     if not checkpoint_path.exists() or not stats_path.exists():
         print("❌ Error: Missing checkpoint or stats file.")
@@ -446,7 +430,7 @@ def evaluate_pipeline(
 
     df = pd.DataFrame()
     for i, name in enumerate(param_names):
-        clean = name.split(' (')[0]
+        clean = name.split(" (")[0]
         df[f"{clean}_True"] = targets_np[:, i]
         df[f"{clean}_Pred"] = preds_np[:, i]
         df[f"{clean}_Error"] = metrics["errors"][:, i]
@@ -467,10 +451,7 @@ def evaluate_pipeline(
 
         # Advanced Reconstruction
         recon_path = report_img_path.parent / "reconstruction_analysis.png"
-        save_advanced_reconstruction(
-            preds_np, targets_np, qs, recon_path,
-            worst_indices=worst_indices
-        )
+        save_advanced_reconstruction(preds_np, targets_np, qs, recon_path, worst_indices=worst_indices)
 
         plot_error_heatmap(df, save_path=report_img_path.parent / "error_heatmap.png")
 
@@ -518,7 +499,7 @@ def main():
         mode="test",
         val_ratio=CONFIG["training"]["val_ratio"],
         test_ratio=CONFIG["training"]["test_ratio"],
-        augment=False  # 평가 시에는 원본 데이터 사용
+        augment=False,  # 평가 시에는 원본 데이터 사용
     )
 
     test_loader = DataLoader(
@@ -526,7 +507,7 @@ def main():
         batch_size=CONFIG["training"]["batch_size"],
         shuffle=False,
         num_workers=CONFIG["training"]["num_workers"],
-        pin_memory=torch.cuda.is_available()
+        pin_memory=torch.cuda.is_available(),
     )
 
     # 4. Pipeline 실행
@@ -538,10 +519,11 @@ def main():
         qs=qs,
         report_img_path=exp_dir / "evaluation_correlation.png",
         report_csv_path=exp_dir / "evaluation_results.csv",
-        report_history_path=exp_dir / "training_history.png"
+        report_history_path=exp_dir / "training_history.png",
     )
 
     print(f"\n✅ Evaluation Complete. Reports saved in: {exp_dir}")
+
 
 if __name__ == "__main__":
     # 실행 시 GPU 메모리 효율화를 위해 세팅

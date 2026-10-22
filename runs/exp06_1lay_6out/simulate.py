@@ -22,12 +22,7 @@ def generate_1layer_data(qs: np.ndarray, config: dict, h5_file: Path | str):
     output_dir = h5_file.parent
     output_dir.mkdir(exist_ok=True, parents=True)
 
-    simulator_args: dict = {
-        "qs": qs,
-        "n_layers": 1,
-        "n_samples": simulation["n_samples"],
-        "has_noise": False
-    }
+    simulator_args: dict = {"qs": qs, "n_layers": 1, "n_samples": simulation["n_samples"], "has_noise": False}
     if param_ranges["thickness"] is not None:
         simulator_args["thickness_range"] = param_ranges["thickness"]
     if param_ranges["roughness"] is not None:
@@ -40,9 +35,7 @@ def generate_1layer_data(qs: np.ndarray, config: dict, h5_file: Path | str):
         simulator_args["sio2_roughness_range"] = param_ranges["sio2_roughness"]
     if param_ranges["sio2_sld"] is not None:
         simulator_args["sio2_sld_range"] = param_ranges["sio2_sld"]
-    simulator = XRRSimulator(
-        **simulator_args
-    )
+    simulator = XRRSimulator(**simulator_args)
 
     simulator.save_hdf5(h5_file, show_progress=True)
 
@@ -62,8 +55,6 @@ if __name__ == "__main__":
 
     h5_file = exp_dir / "dataset.h5"
     qs: np.ndarray = powerspace(
-        CONFIG["simulation"]["q_min"],
-        CONFIG["simulation"]["q_max"],
-        CONFIG["simulation"]["q_points"],
-        CONFIG["simulation"]["power"])
+        CONFIG["simulation"]["q_min"], CONFIG["simulation"]["q_max"], CONFIG["simulation"]["q_points"], CONFIG["simulation"]["power"]
+    )
     generate_1layer_data(qs, CONFIG, h5_file)

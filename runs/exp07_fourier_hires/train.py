@@ -13,6 +13,7 @@ class LogMSELoss(nn.Module):
     XRR 데이터의 넓은 다이내믹 레인지를 고려한 손실 함수.
     이미 입력이 Log 스케일이라면 가중치를 고각에 더 줄 수 있습니다.
     """
+
     def __init__(self):
         super().__init__()
         self.mse = nn.MSELoss()
@@ -22,16 +23,19 @@ class LogMSELoss(nn.Module):
         # 만약 특정 파라미터(예: 두께)에 가중치를 주고 싶다면 여기서 조정
         return self.mse(preds, targets)
 
+
 class Trainer:
-    def __init__(self,
-        model: nn.Module, train_loader: DataLoader,
+    def __init__(
+        self,
+        model: nn.Module,
+        train_loader: DataLoader,
         val_loader: DataLoader,
         save_dir: str | Path,
-        lr: float = 2e-4, # Fourier Feature 모델은 조금 낮은 LR이 안정적임
+        lr: float = 2e-4,  # Fourier Feature 모델은 조금 낮은 LR이 안정적임
         weight_decay: float = 1e-4,
-        patience: int = 20
+        patience: int = 20,
     ):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
 
         self.train_loader = train_loader
@@ -47,11 +51,9 @@ class Trainer:
         self.criterion = nn.MSELoss()
 
         # Scheduler
-        self.scheduler = ReduceLROnPlateau(
-            self.optimizer, mode='min', patience=7, factor=0.5
-        )
+        self.scheduler = ReduceLROnPlateau(self.optimizer, mode="min", patience=7, factor=0.5)
 
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
         self.patience_counter = 0
         self.early_stop_patience = patience
 
@@ -88,7 +90,7 @@ class Trainer:
             # [Physics-Informed Training]
             # autocast를 사용하여 연산 효율 증대
             if self.scaler:
-                with torch.amp.autocast('cuda'):
+                with torch.amp.autocast("cuda"):
                     preds = self.model(inputs)
                     loss = self.criterion(preds, targets)
 
@@ -105,7 +107,7 @@ class Trainer:
                 self.optimizer.step()
 
             running_loss += loss.item()
-            pbar.set_postfix({'loss': f'{loss.item():.6f}'})
+            pbar.set_postfix({"loss": f"{loss.item():.6f}"})
 
         return running_loss / len(self.train_loader)
 
@@ -133,12 +135,12 @@ class Trainer:
             train_loss = self._train_epoch(epoch, epochs)
             val_loss = self._validate()
 
-            self.history['train'].append(train_loss)
-            self.history['val'].append(val_loss)
-            self.history['lr'].append(self.optimizer.param_groups[0]['lr'])
+            self.history["train"].append(train_loss)
+            self.history["val"].append(val_loss)
+            self.history["lr"].append(self.optimizer.param_groups[0]["lr"])
 
             self.scheduler.step(val_loss)
-            current_lr = self.optimizer.param_groups[0]['lr']
+            current_lr = self.optimizer.param_groups[0]["lr"]
 
             print(f"E{epoch:03d} | Train: {train_loss:.6f} | Val: {val_loss:.6f} | LR: {current_lr:.1e}")
 
@@ -157,42 +159,44 @@ class Trainer:
 
     def _save_checkpoint(self, filename: str, epoch: int, val_loss: float):
         path = self.checkpoint_dir / filename
-        model_config = getattr(self.model, 'config', {})
+        model_config = getattr(self.model, "config", {})
 
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
-            'val_loss': val_loss,
-            'best_val_loss': self.best_val_loss,
-            'patience_counter': self.patience_counter,
-            'history': self.history,
-            'config': {'model_args': model_config}
-        }, path)
+        torch.save(
+            {
+                "epoch": epoch,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "scheduler_state_dict": self.scheduler.state_dict(),
+                "val_loss": val_loss,
+                "best_val_loss": self.best_val_loss,
+                "patience_counter": self.patience_counter,
+                "history": self.history,
+                "config": {"model_args": model_config},
+            },
+            path,
+        )
 
     def _load_checkpoint(self, filepath: str | Path) -> int:
         filepath = Path(filepath)
         if not filepath.exists():
             return 1
         checkpoint = torch.load(filepath, map_location=self.device, weights_only=False)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        if 'optimizer_state_dict' in checkpoint:
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        if 'scheduler_state_dict' in checkpoint:
-            self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        self.history = checkpoint.get('history', self.history)
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+        if "optimizer_state_dict" in checkpoint:
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        if "scheduler_state_dict" in checkpoint:
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        self.history = checkpoint.get("history", self.history)
 
         # last.pt의 'val_loss'는 마지막 epoch 값이지 최저값이 아니다. 그대로 쓰면
         # 재개 후 기준이 느슨해져 더 나쁜 모델이 best.pt를 덮어쓴다.
         # 저장된 best_val_loss를 우선 쓰고, 없으면(구버전 ckpt) history에서 복원한다.
-        best = checkpoint.get('best_val_loss')
+        best = checkpoint.get("best_val_loss")
         if best is None:
-            val_hist = checkpoint.get('history', {}).get('val', [])
-            best = min(val_hist) if val_hist else checkpoint.get('val_loss', float('inf'))
+            val_hist = checkpoint.get("history", {}).get("val", [])
+            best = min(val_hist) if val_hist else checkpoint.get("val_loss", float("inf"))
         self.best_val_loss = best
-        self.patience_counter = checkpoint.get('patience_counter', 0)
+        self.patience_counter = checkpoint.get("patience_counter", 0)
 
-        print(f"🔄 Resuming from Epoch {checkpoint['epoch'] + 1} "
-              f"(best val = {self.best_val_loss:.6f}, patience {self.patience_counter})")
-        return checkpoint['epoch'] + 1
+        print(f"🔄 Resuming from Epoch {checkpoint['epoch'] + 1} (best val = {self.best_val_loss:.6f}, patience {self.patience_counter})")
+        return checkpoint["epoch"] + 1

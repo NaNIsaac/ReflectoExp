@@ -19,12 +19,14 @@ def set_seed(seed: int = 42):
     np.random.seed(seed)
     print(f"✅ Seed set to {seed}")
 
+
 def ensure_data_exists(qs, config, h5_path):
     if not h5_path.exists():
         print(f"📦 Data missing at {h5_path}. Generating clean source...")
         h5_path.parent.mkdir(parents=True, exist_ok=True)
 
         simulate.generate_1layer_data(qs, config, h5_path)
+
 
 def get_dataloaders(qs, config, h5_file, stats_file):
     t_cfg = config["training"]
@@ -47,18 +49,18 @@ def get_dataloaders(qs, config, h5_file, stats_file):
     loaders = []
     for mode in ["train", "val", "test"]:
         # shuffle은 학습 데이터에만 적용
-        ds = XRR1LayerDataset(**common_args, mode=mode,
-                            val_ratio=t_cfg["val_ratio"],
-                            test_ratio=t_cfg["test_ratio"])
+        ds = XRR1LayerDataset(**common_args, mode=mode, val_ratio=t_cfg["val_ratio"], test_ratio=t_cfg["test_ratio"])
 
-        loaders.append(DataLoader(
-            ds,
-            batch_size=t_cfg["batch_size"],
-            shuffle=(mode=="train"),
-            num_workers=t_cfg["num_workers"],
-            pin_memory=torch.cuda.is_available(),
-            drop_last=(mode=="train") # Batch norm 안정성
-        ))
+        loaders.append(
+            DataLoader(
+                ds,
+                batch_size=t_cfg["batch_size"],
+                shuffle=(mode == "train"),
+                num_workers=t_cfg["num_workers"],
+                pin_memory=torch.cuda.is_available(),
+                drop_last=(mode == "train"),  # Batch norm 안정성
+            )
+        )
     return loaders
 
 
@@ -67,6 +69,7 @@ def register_nan_hooks(model):
     모델의 모든 레이어에 NaN/Inf 감지 훅을 설치합니다.
     문제가 발생하면 즉시 레이어 이름과 값을 출력하고 프로그램을 멈춥니다.
     """
+
     def forward_hook(module, input, output):
         if isinstance(output, torch.Tensor):
             if torch.isnan(output).any():
@@ -95,6 +98,7 @@ def register_nan_hooks(model):
             module.register_forward_hook(forward_hook)
             module.register_full_backward_hook(backward_hook)
 
+
 def register_debug_hooks(model):
     print("🕵️‍♀️ Installing Debug Hooks (Input/Weight Inspector)...")
 
@@ -110,7 +114,7 @@ def register_debug_hooks(model):
             raise RuntimeError(f"Bad Input at {module}")
 
         # 2. 가중치(Weights) 검사 (Conv/Linear 등)
-        if hasattr(module, 'weight') and module.weight is not None:
+        if hasattr(module, "weight") and module.weight is not None:
             if torch.isnan(module.weight).any() or torch.isinf(module.weight).any():
                 print(f"\n💀 [CRITICAL] Weights are ALREADY broken at {module}")
                 print(f"   - Weight min: {module.weight.min().item()}, max: {module.weight.max().item()}")
@@ -121,7 +125,7 @@ def register_debug_hooks(model):
             if torch.isnan(output).any() or torch.isinf(output).any():
                 print(f"\n💥 [CRITICAL] Output exploded AFTER {module}")
                 print(f"   - Input stats: min={x.min().item():.2e}, max={x.max().item():.2e}")
-                if hasattr(module, 'weight'):
+                if hasattr(module, "weight"):
                     print(f"   - Weight stats: min={module.weight.min().item():.2e}, max={module.weight.max().item():.2e}")
                 raise RuntimeError(f"Explosion at {module}")
 
@@ -129,6 +133,7 @@ def register_debug_hooks(model):
         # 컨테이너가 아닌 실제 연산 레이어에만 훅 등록
         if len(list(module.children())) == 0:
             module.register_forward_hook(forward_hook)
+
 
 def main():
     print("🚀 EXP07 Launching: Physics-Informed Fourier Network")
@@ -156,14 +161,14 @@ def main():
     m_cfg = CONFIG["model"]
     model = XRRPhysicsModel(
         q_len=sim_cfg["q_points"],
-        input_channels=2, # [LogR, Mask]
-        output_dim=3,     # [Thick, Rough, SLD]
+        input_channels=2,  # [LogR, Mask]
+        output_dim=3,  # [Thick, Rough, SLD]
         n_channels=m_cfg["n_channels"],
         depth=m_cfg["depth"],
         mlp_hidden=m_cfg["mlp_hidden"],
         dropout=m_cfg["dropout"],
         use_fourier=m_cfg["use_fourier"],
-        fourier_scale=m_cfg["fourier_scale"]
+        fourier_scale=m_cfg["fourier_scale"],
     )
 
     # Debug mode (config["debug"]["hooks"] = True 일 때만; 학습 속도 손실 큼)
@@ -172,30 +177,32 @@ def main():
 
     # 5. Trainer 실행
     trainer = Trainer(
-        model, train_loader, val_loader, exp_dir,
+        model,
+        train_loader,
+        val_loader,
+        exp_dir,
         lr=CONFIG["training"]["lr"],
         weight_decay=CONFIG["training"]["weight_decay"],
-        patience=CONFIG["training"]["patience"]
+        patience=CONFIG["training"]["patience"],
     )
 
     print("🔥 Training Start...")
     resume_path = exp_dir / "last.pt"
-    trainer.train(
-        CONFIG["training"]["epochs"],
-        resume_from=resume_path if resume_path.exists() else None
-    )
+    trainer.train(CONFIG["training"]["epochs"], resume_from=resume_path if resume_path.exists() else None)
 
     # 6. 최종 평가 (Physics Report 생성)
     print("\n🏁 Running Final Physics-based Evaluation...")
     if checkpoint_file.exists():
         evaluate_pipeline(
-            test_loader, checkpoint_file, stats_file, qs,
+            test_loader,
+            checkpoint_file,
+            stats_file,
+            qs,
             report_img_path=exp_dir / "evaluation_report.png",
             report_csv_path=exp_dir / "evaluation_results.csv",
-            report_history_path=exp_dir / "training_history.png"
+            report_history_path=exp_dir / "training_history.png",
         )
 
 
 if __name__ == "__main__":
     main()
-

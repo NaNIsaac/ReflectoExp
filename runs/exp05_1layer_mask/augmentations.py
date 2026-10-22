@@ -7,12 +7,13 @@ class XRRAugmentations:
     """
     Applies physics-based data augmentation to XRR signals.
     """
+
     def __init__(
         self,
         intensity_noise_scale: float = 0.1,  # +/- 10% scaling
-        q_shift_sigma: float = 0.002,        # Standard deviation for q-shift (1/A)
-        background_level: float = 1e-7,      # Random background noise floor
-        prob: float = 0.5                    # Probability of applying augmentation
+        q_shift_sigma: float = 0.002,  # Standard deviation for q-shift (1/A)
+        background_level: float = 1e-7,  # Random background noise floor
+        prob: float = 0.5,  # Probability of applying augmentation
     ):
         self.intensity_scale = intensity_noise_scale
         self.q_shift_sigma = q_shift_sigma

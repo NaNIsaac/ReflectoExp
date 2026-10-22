@@ -13,12 +13,7 @@ def main():
         "exp_name": "exp04_physics_fused",
         "h5_path": Path(os.environ["DATA"], r"XRR_AI\data/xrr_data.h5"),
         "checkpoint_dir": Path(os.environ["DATA"], r"XRR_AI\model\exp001_reg_tanh"),
-        "norm_ranges": {
-            "thickness": [20.0, 150.0],
-            "roughness": [0.0, 10.0],
-            "sld": [0.0, 140.0]
-        },
-
+        "norm_ranges": {"thickness": [20.0, 150.0], "roughness": [0.0, 10.0], "sld": [0.0, 140.0]},
         "epochs": 20,
         "batch_size": 32,
         "lr": 1e-3,

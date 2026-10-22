@@ -3,8 +3,16 @@ import torch.nn as nn
 
 
 class XRR1DRegressor(nn.Module):
-    def __init__(self, q_len: int, input_channels: int = 2, output_dim: int = 6, n_channels: int = 64, depth: int = 4,
-        mlp_hidden: int = 256, dropout: float = 0.1):
+    def __init__(
+        self,
+        q_len: int,
+        input_channels: int = 2,
+        output_dim: int = 6,
+        n_channels: int = 64,
+        depth: int = 4,
+        mlp_hidden: int = 256,
+        dropout: float = 0.1,
+    ):
         """
         XRR 1D CNN Regressor
 
@@ -19,13 +27,13 @@ class XRR1DRegressor(nn.Module):
         """
         super().__init__()
         self.config = {
-            'q_len': q_len,
-            'input_channels': input_channels,
-            'output_dim': output_dim,
-            'n_channels': n_channels,
-            'depth': depth,
-            'mlp_hidden': mlp_hidden,
-            'dropout': dropout,
+            "q_len": q_len,
+            "input_channels": input_channels,
+            "output_dim": output_dim,
+            "n_channels": n_channels,
+            "depth": depth,
+            "mlp_hidden": mlp_hidden,
+            "dropout": dropout,
         }
 
         # ---------------------------------------------------------
@@ -36,13 +44,15 @@ class XRR1DRegressor(nn.Module):
 
         for i in range(depth):
             out_ch = n_channels * (2 ** min(i, 3))
-            layers.extend([
-                nn.Conv1d(in_ch, out_ch, kernel_size=7, padding=3, bias=False),
-                nn.BatchNorm1d(out_ch),
-                nn.ReLU(inplace=True),
-                nn.Dropout1d(dropout),
-                nn.MaxPool1d(kernel_size=2)
-            ])
+            layers.extend(
+                [
+                    nn.Conv1d(in_ch, out_ch, kernel_size=7, padding=3, bias=False),
+                    nn.BatchNorm1d(out_ch),
+                    nn.ReLU(inplace=True),
+                    nn.Dropout1d(dropout),
+                    nn.MaxPool1d(kernel_size=2),
+                ]
+            )
             in_ch = out_ch
 
         self.encoder = nn.Sequential(*layers)
@@ -61,7 +71,7 @@ class XRR1DRegressor(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(mlp_hidden, mlp_hidden // 2),
             nn.ReLU(inplace=True),
-            nn.Linear(mlp_hidden // 2, output_dim)  # 출력: Thickness, Roughness, SLD
+            nn.Linear(mlp_hidden // 2, output_dim),  # 출력: Thickness, Roughness, SLD
         )
 
         self._init_weights()
@@ -70,7 +80,7 @@ class XRR1DRegressor(nn.Module):
         """Initialize weights using He (Kaiming) Normal initialization."""
         for m in self.modules():
             if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
             elif isinstance(m, nn.BatchNorm1d):
@@ -95,4 +105,3 @@ class XRR1DRegressor(nn.Module):
 
         # 3. Regression
         return self.regressor(pooled)
-
