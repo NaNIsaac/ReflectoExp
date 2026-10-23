@@ -26,6 +26,7 @@ def resample_spectra(meas_q: np.ndarray, meas_I: np.ndarray, target_q: np.ndarra
         return out[0]
     return out
 
+
 # ------------------------------
 # Helper: stats 불러와 파라미터 정규화/역정규화
 # ------------------------------
@@ -35,18 +36,21 @@ def load_stats(stats_path: Path) -> tuple[np.ndarray, np.ndarray]:
     param_std = st["param_std"].numpy() if isinstance(st["param_std"], torch.Tensor) else np.array(st["param_std"])
     return param_mean, param_std
 
+
 def normalize_params(params: np.ndarray, param_mean: np.ndarray, param_std: np.ndarray) -> np.ndarray:
     return (params - param_mean) / param_std
 
+
 def denormalize_params(params_norm: np.ndarray, param_mean: np.ndarray, param_std: np.ndarray) -> np.ndarray:
     return params_norm * param_std + param_mean
+
 
 # ------------------------------
 # Create DataLoader from raw measured arrays
 # ------------------------------
 def make_dataloader_from_arrays(
     measured_q: np.ndarray,
-    measured_I: np.ndarray,        # shape (N, M) or (M,)
+    measured_I: np.ndarray,  # shape (N, M) or (M,)
     true_params: np.ndarray | None,  # shape (N, n_params) or None
     target_q: np.ndarray,
     stats_path: Path,
@@ -82,11 +86,12 @@ def make_dataloader_from_arrays(
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     return loader, param_mean, param_std
 
+
 # ------------------------------
 # Main: evaluate and additional visualizations
 # ------------------------------
 def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_prefix: Path, device=None):
-    device = device or (torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+    device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
     model = model.to(device)
     model.eval()
 
@@ -115,13 +120,13 @@ def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_pr
 
     errors = preds - targets
     mae = np.mean(np.abs(errors), axis=0)
-    rmse = np.sqrt(np.mean(errors ** 2, axis=0))
+    rmse = np.sqrt(np.mean(errors**2, axis=0))
 
     n_params = preds.shape[1]
     param_names = ["Thickness (nm)", "Roughness (Å)", "SLD"][:n_params]
 
     # Print summary
-    print("\n" + "="*40)
+    print("\n" + "=" * 40)
     print("EVALUATION SUMMARY")
     for i, name in enumerate(param_names):
         print(f"{name:15s} MAE={mae[i]:.4f} | RMSE={rmse[i]:.4f}")
@@ -132,14 +137,14 @@ def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_pr
 
     # parity plots
     for i, name in enumerate(param_names):
-        plt.figure(figsize=(5,5))
+        plt.figure(figsize=(5, 5))
         plt.scatter(targets[:, i], preds[:, i], s=10)
         mn = min(targets[:, i].min(), preds[:, i].min())
         mx = max(targets[:, i].max(), preds[:, i].max())
-        plt.plot([mn, mx], [mn, mx], 'r--')
-        plt.xlabel('True')
-        plt.ylabel('Predicted')
-        plt.title(f'Parity: {name}')
+        plt.plot([mn, mx], [mn, mx], "r--")
+        plt.xlabel("True")
+        plt.ylabel("Predicted")
+        plt.title(f"Parity: {name}")
         plt.grid(alpha=0.3)
         plt.tight_layout()
         # pfile = out_prefix / f'parity_{i}_{name.replace(" ", "_")}.png'
@@ -149,12 +154,12 @@ def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_pr
 
     # residual histograms
     for i, name in enumerate(param_names):
-        plt.figure(figsize=(6,4))
+        plt.figure(figsize=(6, 4))
         plt.hist(errors[:, i], bins=50, density=True, alpha=0.7)
-        plt.axvline(0, color='k', linestyle='--')
-        plt.title(f'Residual histogram: {name} (MAE={mae[i]:.4f})')
-        plt.xlabel('Error')
-        plt.ylabel('Density')
+        plt.axvline(0, color="k", linestyle="--")
+        plt.title(f"Residual histogram: {name} (MAE={mae[i]:.4f})")
+        plt.xlabel("Error")
+        plt.ylabel("Density")
         plt.tight_layout()
         # pfile = out_prefix / f'resid_hist_{i}_{name.replace(" ", "_")}.png'
         # plt.savefig(pfile, dpi=300)
@@ -164,13 +169,14 @@ def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_pr
     # Optional: save per-sample spectrum comparison (measured vs reconstructed simulated from preds)
     # If you have forward simulator, you can reconstruct reflectivity from predicted params and compare.
     # Here we only save raw input R for visual inspection
-    np.save(out_prefix / 'preds.npy', preds)
-    np.save(out_prefix / 'targets.npy', targets)
-    np.save(out_prefix / 'Rs.npy', Rs.numpy())
+    np.save(out_prefix / "preds.npy", preds)
+    np.save(out_prefix / "targets.npy", targets)
+    np.save(out_prefix / "Rs.npy", Rs.numpy())
 
     print(f"Saved diagnostics to {out_prefix.resolve()}")
 
     return preds, targets, errors
+
 
 # ------------------------------
 # Example usage block (사용자 환경에 맞게 수정)
@@ -178,6 +184,7 @@ def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_pr
 if __name__ == "__main__":
     from config import CONFIG
     from model import XRR1DRegressor
+
     # -----------------------------
     # 경로 설정
     # -----------------------------
@@ -188,9 +195,9 @@ if __name__ == "__main__":
     out_dir = exp_dir / "eval_real"
 
     # 실제 측정 데이터 디렉토리
-    real_data_dir = Path(os.environ["DATA"], r'XRR_AI\data\one_layer\real_tester')
-    measured_q = np.load(real_data_dir / "measured_q.npy")        # (M,)
-    measured_I = np.load(real_data_dir / "measured_I.npy")        # (N, M) 또는 (M,)
+    real_data_dir = Path(os.environ["DATA"], r"XRR_AI\data\one_layer\real_tester")
+    measured_q = np.load(real_data_dir / "measured_q.npy")  # (M,)
+    measured_I = np.load(real_data_dir / "measured_I.npy")  # (N, M) 또는 (M,)
     try:
         measured_params = np.load(real_data_dir / "measured_params.npy")  # (N, 3)
     except FileNotFoundError:
@@ -199,20 +206,20 @@ if __name__ == "__main__":
     # -----------------------------
     # 모델 불러오기
     # -----------------------------
-    ckpt = torch.load(checkpoint_file, map_location='cpu')
-    config = ckpt['config']['model_args']
+    ckpt = torch.load(checkpoint_file, map_location="cpu")
+    config = ckpt["config"]["model_args"]
 
     model = XRR1DRegressor(**config)
-    model.load_state_dict(ckpt['model_state_dict'])
-    model = model.to(torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    model.load_state_dict(ckpt["model_state_dict"])
+    model = model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     # -----------------------------
     # 학습 때 q-grid 재생성
     # -----------------------------
     q_points = 200
     wavelength = 1.54  # Å
-    tth_min = 1.0      # deg
-    tth_max = 6.0      # deg
+    tth_min = 1.0  # deg
+    tth_max = 6.0  # deg
 
     # θ = tth/2
     tth_deg = np.linspace(tth_min, tth_max, q_points)

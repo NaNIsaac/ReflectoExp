@@ -130,27 +130,27 @@ def Sim(data):
         # --- Parameters ---
         # 1. Material Params
         p_f_d = pars.append("v.set_f_d", model)
-        p_f_d.min=1.0
-        p_f_d.max=self.init_d*2
+        p_f_d.min = 1.0
+        p_f_d.max = self.init_d * 2
         p_f_sig = pars.append("v.set_f_sig", model)
-        p_f_sig.min=0.0
-        p_f_sig.max=30.0
+        p_f_sig.min = 0.0
+        p_f_sig.max = 30.0
         p_f_sld = pars.append("v.set_f_sld", model)
-        p_f_sld.min=0.1
-        p_f_sld.max=50.0
+        p_f_sld.min = 0.1
+        p_f_sld.max = 50.0
 
         p_s_d = pars.append("v.set_s_d", model)
-        p_s_d.value=15.0
-        p_s_d.min=5.0
-        p_s_d.max=50.0
+        p_s_d.value = 15.0
+        p_s_d.min = 5.0
+        p_s_d.max = 50.0
         p_s_sig = pars.append("v.set_s_sig", model)
-        p_s_sig.value=3.0
-        p_s_sig.min=0.0
-        p_s_sig.max=15.0
+        p_s_sig.value = 3.0
+        p_s_sig.min = 0.0
+        p_s_sig.max = 15.0
         p_s_sld = pars.append("v.set_s_sld", model)
-        p_s_sld.value=18.8
-        p_s_sld.min=10.0
-        p_s_sld.max=23.0
+        p_s_sld.value = 18.8
+        p_s_sld.min = 10.0
+        p_s_sld.max = 23.0
 
         # 2. Instrument Params (I0 + Footprint)
         p_i0 = pars.append("v.set_i0", model)
@@ -161,22 +161,22 @@ def Sim(data):
         # [추가] 샘플 길이 피팅 (저각도 모양 결정)
         p_slen = pars.append("v.set_s_len", model)
         p_slen.value = 10.0  # 초기값 10mm
-        p_slen.min = 2.0     # 최소 2mm
-        p_slen.max = 50.0    # 최대 50mm
+        p_slen.min = 2.0  # 최소 2mm
+        p_slen.max = 50.0  # 최대 50mm
 
         # [추가] 빔 폭 (보통 고정하거나 미세 조정)
         p_beam = pars.append("v.set_beam_w", model)
-        p_beam.value = 0.1   # 초기값 0.1mm (슬릿 크기)
+        p_beam.value = 0.1  # 초기값 0.1mm (슬릿 크기)
         p_beam.min = 0.01
         p_beam.max = 0.5
-        p_beam.fit = False   # 일단 고정 (원하면 True)
+        p_beam.fit = False  # 일단 고정 (원하면 True)
 
         model.parameters = pars
 
         # --- Step 1: I0 & Footprint Fitting (Linear) ---
         if verbose:
             print("\n[GenX] Step 1: Fitting I0 & Sample Length...")
-        model.set_fom_func(fom_funcs.diff) # Linear Scale
+        model.set_fom_func(fom_funcs.diff)  # Linear Scale
 
         # I0와 Sample Length는 서로 스케일에 영향을 주므로 같이 피팅
         p_i0.fit = True
@@ -226,12 +226,12 @@ def Sim(data):
         R_sim = self.model.data[0].y_sim
 
         plt.figure(figsize=(8, 6))
-        plt.plot(q, R_meas, 'ko', label='Measured', markersize=4, alpha=0.6)
-        plt.plot(q, R_sim, 'r-', label='Fit', linewidth=2)
-        plt.yscale('log')
-        plt.xlabel(r'q [$\AA^{-1}$]')
-        plt.ylabel('Reflectivity')
-        plt.title(f'Fit Result (FOM: {self.model.fom:.4e})')
+        plt.plot(q, R_meas, "ko", label="Measured", markersize=4, alpha=0.6)
+        plt.plot(q, R_sim, "r-", label="Fit", linewidth=2)
+        plt.yscale("log")
+        plt.xlabel(r"q [$\AA^{-1}$]")
+        plt.ylabel("Reflectivity")
+        plt.title(f"Fit Result (FOM: {self.model.fom:.4e})")
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.show()

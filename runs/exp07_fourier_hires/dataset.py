@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 
 class XRRPreprocessor:
-    def __init__(self, qs: np.ndarray, stats_file=None, device='cpu'):
+    def __init__(self, qs: np.ndarray, stats_file=None, device="cpu"):
         self.target_q = qs
         self.device = device
         self.param_mean = None
@@ -33,20 +33,16 @@ class XRRPreprocessor:
             q_raw, R_log = q_raw[::-1], R_log[::-1]
 
         try:
-            f_cubic = interp1d(q_raw, R_log, kind='cubic',
-                               fill_value="extrapolate", bounds_error=False)
+            f_cubic = interp1d(q_raw, R_log, kind="cubic", fill_value="extrapolate", bounds_error=False)
             R_interp = f_cubic(self.target_q)
-            R_interp = np.minimum(R_interp, 0.0) # Physical constraint
+            R_interp = np.minimum(R_interp, 0.0)  # Physical constraint
         except ValueError:
             R_interp = np.interp(self.target_q, q_raw, R_log, left=-15.0, right=-15.0)
 
         q_valid_mask = (self.target_q >= np.min(q_raw)) & (self.target_q <= np.max(q_raw))
         R_interp[~q_valid_mask] = -15.0
 
-        return torch.stack([
-            torch.from_numpy(R_interp.astype(np.float32)),
-            torch.from_numpy(q_valid_mask.astype(np.float32))
-        ], dim=0)
+        return torch.stack([torch.from_numpy(R_interp.astype(np.float32)), torch.from_numpy(q_valid_mask.astype(np.float32))], dim=0)
 
     def normalize_parameters(self, params_real):
         # [Fix] 텐서 연산을 위해 mean/std 타입 체크
@@ -55,14 +51,23 @@ class XRRPreprocessor:
         params_norm = (params_real - mean) / std
         return torch.from_numpy(params_norm.astype(np.float32))
 
+
 class XRR1LayerDataset(Dataset):
     def __init__(
-        self, qs: np.ndarray, h5_file: str | Path, stats_file: str | Path,
-        mode: str = "train", val_ratio: float = 0.2, test_ratio: float = 0.1,
-        augment: bool = False, expand_factor: int = 1, aug_prob: float = 0.9,
-        intensity_scale: float = 0.1, q_shift_sigma: float = 0.002,
+        self,
+        qs: np.ndarray,
+        h5_file: str | Path,
+        stats_file: str | Path,
+        mode: str = "train",
+        val_ratio: float = 0.2,
+        test_ratio: float = 0.1,
+        augment: bool = False,
+        expand_factor: int = 1,
+        aug_prob: float = 0.9,
+        intensity_scale: float = 0.1,
+        q_shift_sigma: float = 0.002,
         res_sigma_range: tuple = (0.0001, 0.006),
-        augment_eval: bool = False
+        augment_eval: bool = False,
     ):
         self.hf = None
         self.h5_path = Path(h5_file)
@@ -70,8 +75,8 @@ class XRR1LayerDataset(Dataset):
         self.mode = mode
         self.target_q = qs
         # augment_eval=True면 val/test에도 측정 노이즈를 적용해 평가 (expand는 train만)
-        self.augment = augment and (mode == 'train' or augment_eval)
-        self.expand_factor = expand_factor if (mode == 'train') else 1
+        self.augment = augment and (mode == "train" or augment_eval)
+        self.expand_factor = expand_factor if (mode == "train") else 1
         self.aug_prob = aug_prob
 
         self._load_metadata_only()
@@ -86,13 +91,13 @@ class XRR1LayerDataset(Dataset):
                 q_shift_sigma=q_shift_sigma,
                 res_sigma_range=res_sigma_range,
                 delta_q=float(src_q[1] - src_q[0]),
-                prob=aug_prob
+                prob=aug_prob,
             )
 
         self.processor = XRRPreprocessor(self.target_q)
 
         # [Fix] 학습 모드일 때 통계량이 없으면 자동 계산
-        if mode == 'train' and not self.stats_path.exists():
+        if mode == "train" and not self.stats_path.exists():
             self._calculate_and_save_stats()
 
         if self.stats_path.exists():
@@ -113,21 +118,14 @@ class XRR1LayerDataset(Dataset):
     def _calculate_and_save_stats(self):
         """[핵심 추가] 학습 데이터셋으로부터 정규화용 통계량(Mean/Std) 계산 및 저장"""
         print(f"[{self.mode}] Calculating normalization statistics from training subset...")
-        idx = range(self.train_end) # 학습용 인덱스만 사용
+        idx = range(self.train_end)  # 학습용 인덱스만 사용
 
-        params = np.stack([
-            self.thickness[idx],
-            self.roughness[idx],
-            self.sld[idx]
-        ], axis=1)
+        params = np.stack([self.thickness[idx], self.roughness[idx], self.sld[idx]], axis=1)
 
         mean = np.mean(params, axis=0)
-        std = np.std(params, axis=0) + 1e-8 # 0으로 나누기 방지
+        std = np.std(params, axis=0) + 1e-8  # 0으로 나누기 방지
 
-        torch.save({
-            "param_mean": torch.from_numpy(mean.astype(np.float32)),
-            "param_std": torch.from_numpy(std.astype(np.float32))
-        }, self.stats_path)
+        torch.save({"param_mean": torch.from_numpy(mean.astype(np.float32)), "param_std": torch.from_numpy(std.astype(np.float32))}, self.stats_path)
         print(f"   >> Statistics saved to: {self.stats_path}")
 
     def _setup_split(self, val_ratio, test_ratio):
@@ -150,13 +148,11 @@ class XRR1LayerDataset(Dataset):
         real_idx = self.indices[original_idx]
 
         if self.hf is None:
-            self.hf = h5py.File(self.h5_path, 'r', swmr=True)
+            self.hf = h5py.File(self.h5_path, "r", swmr=True)
 
         R_raw = self.hf["R"][real_idx]
         q_raw = self.source_q[real_idx] if self.source_q.ndim == 2 else self.source_q
-        params_raw = np.array([self.thickness[real_idx],
-                            self.roughness[real_idx],
-                            self.sld[real_idx]], dtype=np.float32)
+        params_raw = np.array([self.thickness[real_idx], self.roughness[real_idx], self.sld[real_idx]], dtype=np.float32)
 
         if self.augment:
             q_raw, R_raw = self.physics_augmenter(q_raw, R_raw)
@@ -167,5 +163,5 @@ class XRR1LayerDataset(Dataset):
         return input_tensor, params_tensor
 
     def __del__(self):
-        if hasattr(self, 'hf') and self.hf is not None:
+        if hasattr(self, "hf") and self.hf is not None:
             self.hf.close()

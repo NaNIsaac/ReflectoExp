@@ -17,14 +17,7 @@ CONFIG = {
         "sio2_roughness": None,
         "sio2_sld": None,
     },
-    "simulation": {
-        "wavelength": 1.54,
-        "n_samples": int(1e6),
-        "q_points": 1000,
-        "q_min": tth2q(0.1),
-        "q_max": tth2q(15),
-        "power": 1
-    },
+    "simulation": {"wavelength": 1.54, "n_samples": int(1e6), "q_points": 1000, "q_min": tth2q(0.1), "q_max": tth2q(15), "power": 1},
     "model": {
         "n_channels": 32,
         "depth": 5,
@@ -38,15 +31,16 @@ CONFIG = {
         "weight_decay": 0.0005310131070268705,
         "val_ratio": 0.2,
         "test_ratio": 0.1,
-        "patience" : 15,
+        "patience": 15,
         "num_workers": 0,
         "augment": True,
         "aug_prob": 0.5,
-        "q_shift_sigma": 0.002,   # +/- 0.002 A^-1 shift
+        "q_shift_sigma": 0.002,  # +/- 0.002 A^-1 shift
         "intensity_scale": 0.15,  # +/- 15% intensity variation
         "expand_factor": 10,
     },
 }
+
 
 def save_config(config: dict, file: Path | str):
     """

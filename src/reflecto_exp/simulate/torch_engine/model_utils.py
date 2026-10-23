@@ -26,14 +26,10 @@ class PhysicalModel(nn.Module):
     def simulate_reflectivity(self, q: Tensor, theta: Tensor) -> Tensor:
         raise NotImplementedError
 
-    def get_sld_profiles(
-        self, theta: Tensor, z: Tensor | None = None
-    ) -> tuple[Tensor, Tensor]:
+    def get_sld_profiles(self, theta: Tensor, z: Tensor | None = None) -> tuple[Tensor, Tensor]:
         raise NotImplementedError
 
-    def scale_theta_with_q_factor(
-        self, theta: Tensor, q: float
-    ) -> tuple[Tensor, Tensor]:
+    def scale_theta_with_q_factor(self, theta: Tensor, q: float) -> tuple[Tensor, Tensor]:
         raise NotImplementedError
 
     @property
@@ -75,13 +71,7 @@ class BasicLayerStructureModel(PhysicalModel):
         self.use_background = enable_background
         self.min_background = min_background if not enable_background else 0.0
         self.dq_q = dq_q
-        self._theta_dim = (
-            3 * num_layers
-            + 2
-            + int(enable_background)
-            + int(enable_q_misalignment)
-            + int(enable_r_misalignment)
-        )
+        self._theta_dim = 3 * num_layers + 2 + int(enable_background) + int(enable_q_misalignment) + int(enable_r_misalignment)
 
     def _theta2refl_kwargs(self, theta: Tensor):
         assert theta.shape[-1] == self._theta_dim
@@ -140,9 +130,7 @@ class BasicLayerStructureModel(PhysicalModel):
     def sld_indices(self) -> tuple[int]:
         return tuple(range(2 * self.num_layers + 1, 3 * self.num_layers + 2))
 
-    def get_sld_profiles(
-        self, theta: Tensor, z: Tensor = None, **kwargs
-    ) -> tuple[Tensor, Tensor]:
+    def get_sld_profiles(self, theta: Tensor, z: Tensor = None, **kwargs) -> tuple[Tensor, Tensor]:
         params = self._theta2refl_kwargs(theta)
         return get_density_profiles(
             thicknesses=params["thickness"],
@@ -166,16 +154,12 @@ class BasicLayerStructureModel(PhysicalModel):
         if self.use_background:
             additional_labels.append(r"$log(bkg)$")
 
-        return tuple(
-            get_param_labels(self.num_layers, add_units=True) + additional_labels
-        )
+        return tuple(get_param_labels(self.num_layers, add_units=True) + additional_labels)
 
     def simulate_reflectivity(self, q: Tensor, theta: Tensor) -> Tensor:
         return simulate_reflectivity(q, **self._theta2refl_kwargs(theta))
 
-    def scale_theta_with_q_factor(
-        self, theta: Tensor, q_factor: float
-    ) -> tuple[Tensor, Tensor]:
+    def scale_theta_with_q_factor(self, theta: Tensor, q_factor: float) -> tuple[Tensor, Tensor]:
         theta = theta.clone()
         logdetjac = -torch.ones_like(theta[..., 0]) * log(q_factor)
 

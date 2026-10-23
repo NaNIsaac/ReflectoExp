@@ -28,22 +28,14 @@ def generate_1layer_data(config: dict, h5_file: Path | str):
     q_max = tth2q(simulation["tth_max"], simulation["wavelength"])
     qs = np.linspace(q_min, q_max, simulation["q_points"])
 
-    simulator_args: dict = {
-        "qs": qs,
-        "n_layers": 1,
-        "n_samples": simulation["n_samples"],
-        "has_noise": True
-    }
+    simulator_args: dict = {"qs": qs, "n_layers": 1, "n_samples": simulation["n_samples"], "has_noise": True}
     if param_ranges["thickness"] is not None:
         simulator_args["thickness_range"] = param_ranges["thickness"]
     if param_ranges["roughness"] is not None:
         simulator_args["roughness_range"] = param_ranges["roughness"]
     if param_ranges["sld"] is not None:
         simulator_args["sld_range"] = param_ranges["sld"]
-    simulator = XRRSimulator(
-        **simulator_args
-    )
-
+    simulator = XRRSimulator(**simulator_args)
 
     simulator.save_hdf5(h5_file, show_progress=True)
 
@@ -51,6 +43,7 @@ def generate_1layer_data(config: dict, h5_file: Path | str):
     print(f"   - 샘플 수: {simulation['n_samples']:,}")
     print(f"   - q 포인트: {len(qs)}")
     print(f"   - 파라미터 범위: {param_ranges}")
+
 
 if __name__ == "__main__":
     pass

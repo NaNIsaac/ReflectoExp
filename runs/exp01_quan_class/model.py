@@ -18,7 +18,7 @@ class Conv1DEncoder(nn.Module):
         layers = []
         ch = in_channels
         for i in range(n_layers):
-            out_ch = base_channels * (2 ** i) if i < 3 else base_channels * (2 ** 3)
+            out_ch = base_channels * (2**i) if i < 3 else base_channels * (2**3)
             layers.append(nn.Conv1d(ch, out_ch, kernel_size=kernel_size, padding=kernel_size // 2))
             layers.append(nn.BatchNorm1d(out_ch))
             layers.append(nn.ReLU(inplace=True))
@@ -118,10 +118,12 @@ class XRRClassifier(nn.Module):
 # Loss helper
 # -------------------------
 def multitask_loss(
-    logits_th, logits_rg, logits_sld,
+    logits_th,
+    logits_rg,
+    logits_sld,
     targets,  # (B, L, 3)
     weights=(1.0, 1.0, 1.0),
-    ignore_index: int = -100
+    ignore_index: int = -100,
 ) -> tuple[torch.Tensor, tuple[float, float, float]]:
     B, L, _ = targets.shape
     device = logits_th.device
@@ -152,9 +154,14 @@ def accuracy_from_logits(logits, targets):
 # -------------------------
 # Training / Validation
 # -------------------------
-def train_epoch(model: nn.Module, loader: torch.utils.data.DataLoader, optimizer: torch.optim.Optimizer,
-                device: torch.device, scaler: torch.cuda.amp.GradScaler = None,
-                clip_grad: float = 1.0) -> float:
+def train_epoch(
+    model: nn.Module,
+    loader: torch.utils.data.DataLoader,
+    optimizer: torch.optim.Optimizer,
+    device: torch.device,
+    scaler: torch.cuda.amp.GradScaler = None,
+    clip_grad: float = 1.0,
+) -> float:
     """
     Single epoch training with optional AMP scaler.
     Returns: (avg_loss, {"th":.., "rg":.., "sld":..})
@@ -171,7 +178,7 @@ def train_epoch(model: nn.Module, loader: torch.utils.data.DataLoader, optimizer
 
         optimizer.zero_grad()
         if scaler is not None:
-            with torch.amp.autocast('cuda'):
+            with torch.amp.autocast("cuda"):
                 logits_th, logits_rg, logits_sld = model(refl)
                 loss_th = ce(logits_th.view(-1, logits_th.shape[-1]), labels[:, :, 0].view(-1))
                 loss_rg = ce(logits_rg.view(-1, logits_rg.shape[-1]), labels[:, :, 1].view(-1))
@@ -205,10 +212,7 @@ def train_epoch(model: nn.Module, loader: torch.utils.data.DataLoader, optimizer
 
 
 def validate_epoch(
-    model: nn.Module,
-    dataloader: torch.utils.data.DataLoader,
-    device: torch.device,
-    logits_clip: float = 50.0
+    model: nn.Module, dataloader: torch.utils.data.DataLoader, device: torch.device, logits_clip: float = 50.0
 ) -> tuple[float, dict[str, float]]:
 
     model.eval()
@@ -231,9 +235,7 @@ def validate_epoch(
                 logits_rg = logits_rg.clamp(-logits_clip, logits_clip)
                 logits_sld = logits_sld.clamp(-logits_clip, logits_clip)
 
-            if not (torch.isfinite(logits_th).all() and
-                    torch.isfinite(logits_rg).all() and
-                    torch.isfinite(logits_sld).all()):
+            if not (torch.isfinite(logits_th).all() and torch.isfinite(logits_rg).all() and torch.isfinite(logits_sld).all()):
                 raise RuntimeError("Non-finite logits encountered in validation.")
 
             loss, _ = multitask_loss(logits_th, logits_rg, logits_sld, labels)

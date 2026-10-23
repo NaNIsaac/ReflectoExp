@@ -20,7 +20,7 @@ class XRREvaluator:
         checkpoint_path: Path | str,
         batch_size: int = 64,
         device: str | torch.device = None,
-        num_workers: int = 0,   # Windows에서는 0~2 권장
+        num_workers: int = 0,  # Windows에서는 0~2 권장
         pin_memory: bool = True,
     ):
         self.h5_path = Path(h5_path)
@@ -39,11 +39,7 @@ class XRREvaluator:
         # Dataset
         self.val_dataset = DatasetH5(self.h5_path, self.quantizer)
         self.val_loader = DataLoader(
-            self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-            pin_memory=self.pin_memory
+            self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=self.num_workers, pin_memory=self.pin_memory
         )
 
         # Model
@@ -51,13 +47,9 @@ class XRREvaluator:
         self.q_len = sample_refl.shape[0]
         self.n_layers = sample_label.shape[0]
 
-        self.model = XRRClassifier(
-            q_len=self.q_len,
-            n_layers=self.n_layers,
-            n_th_bins=self.n_th,
-            n_rg_bins=self.n_rg,
-            n_sld_bins=self.n_sld
-        ).to(self.device)
+        self.model = XRRClassifier(q_len=self.q_len, n_layers=self.n_layers, n_th_bins=self.n_th, n_rg_bins=self.n_rg, n_sld_bins=self.n_sld).to(
+            self.device
+        )
         # --- Safe checkpoint loading ---
         if self.checkpoint_path and self.checkpoint_path.is_file():
             try:
@@ -108,12 +100,9 @@ class XRREvaluator:
 
                 # --- Loss 계산(CrossEntropy 조합) ---
                 loss = (
-                    self.ce(th_logits.reshape(-1, th_logits.shape[-1]),
-                            tgt_th.reshape(-1)) +
-                    self.ce(rg_logits.reshape(-1, rg_logits.shape[-1]),
-                            tgt_rg.reshape(-1)) +
-                    self.ce(sld_logits.reshape(-1, sld_logits.shape[-1]),
-                            tgt_sld.reshape(-1))
+                    self.ce(th_logits.reshape(-1, th_logits.shape[-1]), tgt_th.reshape(-1))
+                    + self.ce(rg_logits.reshape(-1, rg_logits.shape[-1]), tgt_rg.reshape(-1))
+                    + self.ce(sld_logits.reshape(-1, sld_logits.shape[-1]), tgt_sld.reshape(-1))
                 )
                 all_losses.append(loss.item())
 
@@ -145,12 +134,7 @@ class XRREvaluator:
         self.acc_sld = (self.all_pred_sld == self.all_tgt_sld).mean()
         self.avg_loss = np.mean(all_losses)
 
-        return {
-            "loss": self.avg_loss,
-            "acc_th": self.acc_th,
-            "acc_rg": self.acc_rg,
-            "acc_sld": self.acc_sld
-        }
+        return {"loss": self.avg_loss, "acc_th": self.acc_th, "acc_rg": self.acc_rg, "acc_sld": self.acc_sld}
 
     def plot_loss(self, window: int = 50):
         losses = np.array(self.all_losses)
@@ -161,8 +145,8 @@ class XRREvaluator:
 
         # Moving average
         if len(losses) >= window:
-            ma = np.convolve(losses, np.ones(window)/window, mode="valid")
-            plt.plot(range(window-1, window-1+len(ma)), ma, linewidth=2, label=f"MA({window})")
+            ma = np.convolve(losses, np.ones(window) / window, mode="valid")
+            plt.plot(range(window - 1, window - 1 + len(ma)), ma, linewidth=2, label=f"MA({window})")
 
         plt.xlabel("Batch")
         plt.ylabel("Loss")
@@ -174,12 +158,15 @@ class XRREvaluator:
     def plot_error_histogram(self):
         plt.figure(figsize=(15, 4))
 
-        for i, (tgt, pred, name) in enumerate(zip(
-            [self.all_tgt_th, self.all_tgt_rg, self.all_tgt_sld],
-            [self.all_pred_th, self.all_pred_rg, self.all_pred_sld],
-            ["Thickness", "Roughness", "SLD"], strict=False
-        )):
-            plt.subplot(1, 3, i+1)
+        for i, (tgt, pred, name) in enumerate(
+            zip(
+                [self.all_tgt_th, self.all_tgt_rg, self.all_tgt_sld],
+                [self.all_pred_th, self.all_pred_rg, self.all_pred_sld],
+                ["Thickness", "Roughness", "SLD"],
+                strict=False,
+            )
+        ):
+            plt.subplot(1, 3, i + 1)
             errors = pred - tgt
 
             sns.histplot(errors, bins=40, kde=True)
@@ -187,8 +174,8 @@ class XRREvaluator:
             std = errors.std()
 
             plt.axvline(mean, color="r", linestyle="--", label=f"Mean = {mean:.2f}")
-            plt.axvline(mean+std, color="g", linestyle=":", label=f"+1σ = {mean+std:.2f}")
-            plt.axvline(mean-std, color="g", linestyle=":", label=f"-1σ = {mean-std:.2f}")
+            plt.axvline(mean + std, color="g", linestyle=":", label=f"+1σ = {mean + std:.2f}")
+            plt.axvline(mean - std, color="g", linestyle=":", label=f"-1σ = {mean - std:.2f}")
 
             plt.title(f"{name} Error Distribution")
             plt.xlabel("Prediction - Target")
@@ -200,12 +187,15 @@ class XRREvaluator:
     def plot_scatter(self, use_hexbin: bool = False):
         plt.figure(figsize=(15, 4))
 
-        for i, (tgt, pred, name) in enumerate(zip(
-            [self.all_tgt_th, self.all_tgt_rg, self.all_tgt_sld],
-            [self.all_pred_th, self.all_pred_rg, self.all_pred_sld],
-            ["Thickness", "Roughness", "SLD"], strict=False
-        )):
-            plt.subplot(1, 3, i+1)
+        for i, (tgt, pred, name) in enumerate(
+            zip(
+                [self.all_tgt_th, self.all_tgt_rg, self.all_tgt_sld],
+                [self.all_pred_th, self.all_pred_rg, self.all_pred_sld],
+                ["Thickness", "Roughness", "SLD"],
+                strict=False,
+            )
+        ):
+            plt.subplot(1, 3, i + 1)
 
             if use_hexbin:
                 plt.hexbin(tgt, pred, gridsize=40, cmap="viridis", mincnt=1)
@@ -233,17 +223,9 @@ class XRREvaluator:
     def plot_correlation(self):
         import pandas as pd
 
-        df_target = pd.DataFrame({
-            "Thickness": self.all_tgt_th,
-            "Roughness": self.all_tgt_rg,
-            "SLD": self.all_tgt_sld
-        })
+        df_target = pd.DataFrame({"Thickness": self.all_tgt_th, "Roughness": self.all_tgt_rg, "SLD": self.all_tgt_sld})
 
-        df_pred = pd.DataFrame({
-            "Thickness": self.all_pred_th,
-            "Roughness": self.all_pred_rg,
-            "SLD": self.all_pred_sld
-        })
+        df_pred = pd.DataFrame({"Thickness": self.all_pred_th, "Roughness": self.all_pred_rg, "SLD": self.all_pred_sld})
 
         df_error = df_pred - df_target
 
@@ -262,13 +244,12 @@ class XRREvaluator:
         plt.show()
 
 
-
 if __name__ == "__main__":
     evaluator = XRREvaluator(
         h5_path=Path(os.environ["DATA"], r"XRR_AI\data\p300o6_raw.h5"),
         checkpoint_path=Path(os.environ["DATA"], r"XRR_AI\model\xrr_model.pt"),
         batch_size=64,
-        num_workers=0  # Windows 안정성
+        num_workers=0,  # Windows 안정성
     )
     metrics = evaluator.evaluate(use_amp=True)
     print(f"Validation Loss: {metrics['loss']:.4f}")

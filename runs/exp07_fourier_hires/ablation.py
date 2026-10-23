@@ -85,9 +85,15 @@ def build_qs(sim_cfg: dict) -> np.ndarray:
     return np.linspace(sim_cfg["q_min"], sim_cfg["q_max"], sim_cfg["q_points"]).astype(np.float32)
 
 
-def make_loaders(qs: np.ndarray, cfg: dict, h5_file: Path, stats_file: Path,
-                 modes: list[str] | None = None, augment_eval: bool | None = None,
-                 num_workers: int | None = None):
+def make_loaders(
+    qs: np.ndarray,
+    cfg: dict,
+    h5_file: Path,
+    stats_file: Path,
+    modes: list[str] | None = None,
+    augment_eval: bool | None = None,
+    num_workers: int | None = None,
+):
     t_cfg = cfg["training"]
     common = {
         "qs": qs,
@@ -111,19 +117,18 @@ def make_loaders(qs: np.ndarray, cfg: dict, h5_file: Path, stats_file: Path,
 
     loaders = []
     for mode in modes:
-        ds = XRR1LayerDataset(
-            **common, mode=mode,
-            val_ratio=t_cfg["val_ratio"], test_ratio=t_cfg["test_ratio"]
-        )
+        ds = XRR1LayerDataset(**common, mode=mode, val_ratio=t_cfg["val_ratio"], test_ratio=t_cfg["test_ratio"])
         workers = t_cfg["num_workers"] if num_workers is None else num_workers
-        loaders.append(DataLoader(
-            ds,
-            batch_size=t_cfg["batch_size"],
-            shuffle=(mode == "train"),
-            num_workers=workers,
-            pin_memory=torch.cuda.is_available(),
-            drop_last=(mode == "train"),
-        ))
+        loaders.append(
+            DataLoader(
+                ds,
+                batch_size=t_cfg["batch_size"],
+                shuffle=(mode == "train"),
+                num_workers=workers,
+                pin_memory=torch.cuda.is_available(),
+                drop_last=(mode == "train"),
+            )
+        )
     return loaders
 
 
@@ -146,8 +151,7 @@ def steps_per_epoch(loader: DataLoader) -> int:
     return len(loader)
 
 
-def resolve_epochs(cfg: dict, train_loader: DataLoader, budget_steps: int | None,
-                   epochs_override: int | None) -> int:
+def resolve_epochs(cfg: dict, train_loader: DataLoader, budget_steps: int | None, epochs_override: int | None) -> int:
     """
     Variant마다 epoch당 step 수가 다르므로(augmentation expand_factor 차이),
     epoch이 아닌 optimizer step 수를 맞춰야 공정 비교가 된다.
@@ -164,8 +168,7 @@ def resolve_epochs(cfg: dict, train_loader: DataLoader, budget_steps: int | None
     return max(1, math.ceil(budget_steps / spe))
 
 
-def resolve_patience(cfg: dict, train_loader: DataLoader, budget_steps: int | None,
-                     baseline_spe: int | None) -> int:
+def resolve_patience(cfg: dict, train_loader: DataLoader, budget_steps: int | None, baseline_spe: int | None) -> int:
     """
     early stopping patience도 epoch 단위이므로 step 예산을 맞추면 함께 환산해야 한다.
     그렇지 않으면 epoch당 step이 적은 variant(augmentation 없음)가 훨씬 이른
@@ -179,9 +182,9 @@ def resolve_patience(cfg: dict, train_loader: DataLoader, budget_steps: int | No
     return max(1, math.ceil(patience * baseline_spe / spe))
 
 
-def eval_variant(name: str, cfg: dict, var_dir: Path, h5_file: Path, stats_file: Path,
-                 qs: np.ndarray, checkpoint_file: Path,
-                 augment_eval: bool, tag: str) -> dict:
+def eval_variant(
+    name: str, cfg: dict, var_dir: Path, h5_file: Path, stats_file: Path, qs: np.ndarray, checkpoint_file: Path, augment_eval: bool, tag: str
+) -> dict:
     """
     학습 없이 저장된 best.pt로 평가만 수행.
 
@@ -198,7 +201,10 @@ def eval_variant(name: str, cfg: dict, var_dir: Path, h5_file: Path, stats_file:
         return {"variant": name, "error": "missing checkpoint"}
 
     (test_loader,) = make_loaders(
-        qs, cfg, h5_file, stats_file,
+        qs,
+        cfg,
+        h5_file,
+        stats_file,
         modes=["test"],
         augment_eval=augment_eval,
         num_workers=0 if augment_eval else None,
@@ -213,7 +219,10 @@ def eval_variant(name: str, cfg: dict, var_dir: Path, h5_file: Path, stats_file:
     print(f"  test samples  : {len(test_loader.dataset):,}")
 
     metrics = evaluate_pipeline(
-        test_loader, checkpoint_file, stats_file, qs,
+        test_loader,
+        checkpoint_file,
+        stats_file,
+        qs,
         report_img_path=var_dir / f"evaluation_correlation_{tag}.png",
         report_csv_path=var_dir / f"evaluation_results_{tag}.csv",
         report_history_path=None,
@@ -239,11 +248,18 @@ def eval_variant(name: str, cfg: dict, var_dir: Path, h5_file: Path, stats_file:
     return row
 
 
-def run_variant(name: str, cfg: dict, root_dir: Path, h5_file: Path,
-                budget_steps: int | None, epochs_override: int | None,
-                baseline_spe: int | None = None,
-                eval_only: bool = False, augment_eval: bool = False,
-                tag: str = "clean") -> dict:
+def run_variant(
+    name: str,
+    cfg: dict,
+    root_dir: Path,
+    h5_file: Path,
+    budget_steps: int | None,
+    epochs_override: int | None,
+    baseline_spe: int | None = None,
+    eval_only: bool = False,
+    augment_eval: bool = False,
+    tag: str = "clean",
+) -> dict:
     print("\n" + "=" * 80)
     print(f"[Ablation] Variant: {name}")
     print("=" * 80)
@@ -258,8 +274,7 @@ def run_variant(name: str, cfg: dict, root_dir: Path, h5_file: Path,
     qs = build_qs(cfg["simulation"])
 
     if eval_only:
-        return eval_variant(name, cfg, var_dir, h5_file, stats_file, qs,
-                            checkpoint_file, augment_eval, tag)
+        return eval_variant(name, cfg, var_dir, h5_file, stats_file, qs, checkpoint_file, augment_eval, tag)
 
     np.save(var_dir / "qs.npy", qs)
     save_config(cfg, var_dir / "config.json")
@@ -282,7 +297,10 @@ def run_variant(name: str, cfg: dict, root_dir: Path, h5_file: Path,
     print(f"  patience      : {patience} epochs (step 환산)")
 
     trainer = Trainer(
-        model, train_loader, val_loader, var_dir,
+        model,
+        train_loader,
+        val_loader,
+        var_dir,
         lr=cfg["training"]["lr"],
         weight_decay=cfg["training"]["weight_decay"],
         patience=patience,
@@ -298,17 +316,26 @@ def run_variant(name: str, cfg: dict, root_dir: Path, h5_file: Path,
     if time_log.exists():
         prev_seconds = float(json.loads(time_log.read_text()).get("cumulative_seconds", 0.0))
     cumulative_seconds = prev_seconds + train_seconds
-    time_log.write_text(json.dumps({
-        "cumulative_seconds": cumulative_seconds,
-        "last_run_seconds": train_seconds,
-    }, indent=2), encoding="utf-8")
+    time_log.write_text(
+        json.dumps(
+            {
+                "cumulative_seconds": cumulative_seconds,
+                "last_run_seconds": train_seconds,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     val_hist = trainer.history.get("val", [])
     best_epoch = int(np.argmin(val_hist)) + 1 if val_hist else None
     epochs_ran = len(val_hist)
 
     metrics = evaluate_pipeline(
-        test_loader, checkpoint_file, stats_file, qs,
+        test_loader,
+        checkpoint_file,
+        stats_file,
+        qs,
         report_img_path=var_dir / "evaluation_correlation.png",
         report_csv_path=var_dir / "evaluation_results.csv",
         report_history_path=var_dir / "training_history.png",
@@ -361,13 +388,9 @@ def merge_summary(rows: list[dict], out_csv: Path) -> pd.DataFrame:
             df_new = pd.concat([kept, df_new], ignore_index=True)
 
     order = {name: i for i, name in enumerate(VARIANTS)}
-    df_new = (df_new
-              .sort_values("variant", key=lambda s: s.map(order).fillna(len(order)))
-              .reset_index(drop=True))
+    df_new = df_new.sort_values("variant", key=lambda s: s.map(order).fillna(len(order))).reset_index(drop=True)
     df_new.to_csv(out_csv, index=False, encoding="utf-8-sig")
-    out_csv.with_suffix(".json").write_text(
-        df_new.to_json(orient="records", indent=2, force_ascii=False), encoding="utf-8"
-    )
+    out_csv.with_suffix(".json").write_text(df_new.to_json(orient="records", indent=2, force_ascii=False), encoding="utf-8")
     return df_new
 
 
@@ -379,41 +402,54 @@ def print_plan(cfgs: dict[str, dict]):
         qn = cfg["simulation"]["q_points"]
         model = build_model(cfg, q_len=qn)
         n = sum(p.numel() for p in model.parameters())
-        print(f"{name:<16} | {qn:>6} | {cfg['model']['depth']:>5} | "
-              f"{str(cfg['model']['use_fourier']):>7} | {str(cfg['training']['augment']):>7} | "
-              f"{cfg['training']['expand_factor']:>6} | {n:>10,}")
+        print(
+            f"{name:<16} | {qn:>6} | {cfg['model']['depth']:>5} | "
+            f"{str(cfg['model']['use_fourier']):>7} | {str(cfg['training']['augment']):>7} | "
+            f"{cfg['training']['expand_factor']:>6} | {n:>10,}"
+        )
     print("=" * 100)
 
 
 def main():
     parser = argparse.ArgumentParser(description="exp07 ablation runner")
-    parser.add_argument("--only", nargs="+", default=None,
-                        help=f"실행할 variant 이름 (기본: 전체). 선택지: {list(VARIANTS)}")
-    parser.add_argument("--epochs", type=int, default=None,
-                        help="모든 variant의 epoch를 강제 지정. **스모크 테스트 전용** - "
-                             "variant마다 epoch당 step 수가 달라 공정 비교가 깨진다. "
-                             "예산을 줄이려면 --baseline-epochs를 쓸 것")
-    parser.add_argument("--baseline-epochs", type=int, default=None,
-                        help="기준 variant 기준 epoch 수. 이 값으로 총 step 예산을 정하고 "
-                             "나머지 variant는 같은 step 수에 맞춘다 (기본: config의 epochs)")
-    parser.add_argument("--budget-steps", type=int, default=None,
-                        help="총 optimizer step 예산을 직접 지정 (--baseline-epochs보다 우선)")
-    parser.add_argument("--expand-factor", type=int, default=None,
-                        help="augmented variant의 expand_factor 덮어쓰기. 학습 내용이 아니라 "
-                             "epoch 경계(=val/checkpoint 주기)만 바꾼다. 낮추면 같은 step 예산에서 "
-                             "학습곡선 해상도가 올라간다")
-    parser.add_argument("--budget-mode", choices=["steps", "epochs"], default="steps",
-                        help="steps: 기준 variant의 총 optimizer step 수에 맞춰 epoch 자동 조정 (기본). "
-                             "epochs: config의 epochs를 그대로 사용")
-    parser.add_argument("--baseline", default="A_full",
-                        help="step 예산 기준이 되는 variant")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="학습 없이 실행 계획만 출력")
-    parser.add_argument("--eval-only", action="store_true",
-                        help="학습을 건너뛰고 저장된 best.pt로 평가만 수행")
-    parser.add_argument("--augment-eval", action="store_true",
-                        help="측정 노이즈가 실린 test set에서 평가. clean 평가는 augmentation "
-                             "없이 학습한 variant에 유리하게 편향되므로 두 도메인 모두 측정할 것")
+    parser.add_argument("--only", nargs="+", default=None, help=f"실행할 variant 이름 (기본: 전체). 선택지: {list(VARIANTS)}")
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=None,
+        help="모든 variant의 epoch를 강제 지정. **스모크 테스트 전용** - "
+        "variant마다 epoch당 step 수가 달라 공정 비교가 깨진다. "
+        "예산을 줄이려면 --baseline-epochs를 쓸 것",
+    )
+    parser.add_argument(
+        "--baseline-epochs",
+        type=int,
+        default=None,
+        help="기준 variant 기준 epoch 수. 이 값으로 총 step 예산을 정하고 나머지 variant는 같은 step 수에 맞춘다 (기본: config의 epochs)",
+    )
+    parser.add_argument("--budget-steps", type=int, default=None, help="총 optimizer step 예산을 직접 지정 (--baseline-epochs보다 우선)")
+    parser.add_argument(
+        "--expand-factor",
+        type=int,
+        default=None,
+        help="augmented variant의 expand_factor 덮어쓰기. 학습 내용이 아니라 "
+        "epoch 경계(=val/checkpoint 주기)만 바꾼다. 낮추면 같은 step 예산에서 "
+        "학습곡선 해상도가 올라간다",
+    )
+    parser.add_argument(
+        "--budget-mode",
+        choices=["steps", "epochs"],
+        default="steps",
+        help="steps: 기준 variant의 총 optimizer step 수에 맞춰 epoch 자동 조정 (기본). epochs: config의 epochs를 그대로 사용",
+    )
+    parser.add_argument("--baseline", default="A_full", help="step 예산 기준이 되는 variant")
+    parser.add_argument("--dry-run", action="store_true", help="학습 없이 실행 계획만 출력")
+    parser.add_argument("--eval-only", action="store_true", help="학습을 건너뛰고 저장된 best.pt로 평가만 수행")
+    parser.add_argument(
+        "--augment-eval",
+        action="store_true",
+        help="측정 노이즈가 실린 test set에서 평가. clean 평가는 augmentation 없이 학습한 variant에 유리하게 편향되므로 두 도메인 모두 측정할 것",
+    )
     args = parser.parse_args()
 
     names = args.only if args.only else list(VARIANTS)
@@ -460,23 +496,26 @@ def main():
         base_stats = root_dir / "ablation" / args.baseline / "stats.pt"
         base_stats.parent.mkdir(parents=True, exist_ok=True)
         base_loader, _, _ = make_loaders(
-            build_qs(base_cfg["simulation"]), base_cfg, h5_file, base_stats,
+            build_qs(base_cfg["simulation"]),
+            base_cfg,
+            h5_file,
+            base_stats,
         )
         baseline_spe = steps_per_epoch(base_loader)
 
         if args.budget_steps is not None:
             budget_steps = args.budget_steps
-            print(f"\n[Budget] 직접 지정 = {budget_steps:,} steps "
-                  f"(baseline={args.baseline}, {baseline_spe:,} steps/epoch)")
+            print(f"\n[Budget] 직접 지정 = {budget_steps:,} steps (baseline={args.baseline}, {baseline_spe:,} steps/epoch)")
         else:
             base_epochs = args.baseline_epochs or base_cfg["training"]["epochs"]
             budget_steps = base_epochs * baseline_spe
-            print(f"\n[Budget] baseline={args.baseline}, {base_epochs} epochs × "
-                  f"{baseline_spe:,} steps = {budget_steps:,} steps "
-                  f"(모든 variant를 이 step 수에 맞춤)")
+            print(
+                f"\n[Budget] baseline={args.baseline}, {base_epochs} epochs × "
+                f"{baseline_spe:,} steps = {budget_steps:,} steps "
+                f"(모든 variant를 이 step 수에 맞춤)"
+            )
     elif args.epochs is not None:
-        print(f"\n⚠️  --epochs {args.epochs}: variant마다 epoch당 step 수가 다르므로 "
-              f"공정 비교가 성립하지 않음 (스모크 테스트 전용)")
+        print(f"\n⚠️  --epochs {args.epochs}: variant마다 epoch당 step 수가 다르므로 공정 비교가 성립하지 않음 (스모크 테스트 전용)")
 
     tag = "augmented" if args.augment_eval else "clean"
     suffix = f"_{tag}" if args.eval_only else ""
@@ -486,10 +525,18 @@ def main():
     out_csv.parent.mkdir(parents=True, exist_ok=True)
 
     for name in names:
-        row = run_variant(name, cfgs[name], root_dir, h5_file, budget_steps,
-                          args.epochs, baseline_spe,
-                          eval_only=args.eval_only, augment_eval=args.augment_eval,
-                          tag=tag)
+        row = run_variant(
+            name,
+            cfgs[name],
+            root_dir,
+            h5_file,
+            budget_steps,
+            args.epochs,
+            baseline_spe,
+            eval_only=args.eval_only,
+            augment_eval=args.augment_eval,
+            tag=tag,
+        )
         rows.append(row)
 
         # 매 variant마다 중간 저장 (중단 대비)
@@ -499,8 +546,7 @@ def main():
     print("\n" + "=" * 100)
     print(f"ABLATION SUMMARY ({tag} test set)" if args.eval_only else "ABLATION SUMMARY")
     print("=" * 100)
-    cols = ["variant", "eval_domain", "q_points", "use_fourier", "augment", "params",
-            "Thickness_MAE", "Roughness_MAE", "SLD_MAE", "Thickness_R2"]
+    cols = ["variant", "eval_domain", "q_points", "use_fourier", "augment", "params", "Thickness_MAE", "Roughness_MAE", "SLD_MAE", "Thickness_R2"]
     print(df[[c for c in cols if c in df.columns]].to_string(index=False))
     print("=" * 100)
     # json은 merge_summary가 csv와 함께 이미 기록했다

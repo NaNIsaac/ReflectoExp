@@ -10,13 +10,19 @@ This is one of the XRR research branches. [Reflecto](https://github.com/NaNIsaac
 
 ## Install
 
-Uses [uv](https://docs.astral.sh/uv/) and Python 3.13. `torch` is pulled from the PyTorch CUDA 12.8 index.
+Uses [uv](https://docs.astral.sh/uv/) and Python 3.13. `torch` is pulled from the PyTorch CUDA 12.8 index (PyPI on macOS).
 
 ```bash
 git clone https://github.com/NaNIsaac/ReflectoExp.git
 cd ReflectoExp
+```
+
+Install the dependencies and the `reflecto_exp` package:
+
+<!-- test -->
+```bash
 uv sync
-uv pip install -e .     # installs the reflecto_exp package
+uv pip install -e .
 ```
 
 The refnx-based experiments (exp01, exp02, exp03) also need `uv pip install refnx`, which is not a declared dependency.

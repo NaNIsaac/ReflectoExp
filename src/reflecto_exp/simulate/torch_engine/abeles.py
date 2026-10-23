@@ -21,16 +21,12 @@ def abeles(
         # add zero ambient sld
         sld = torch.cat([torch.zeros(batch_size, 1).to(sld), sld], -1)
     if sld.shape[-1] != num_layers + 2:
-        raise ValueError(
-            "Number of SLD values does not equal to num_layers + 2 (substrate + ambient)."
-        )
+        raise ValueError("Number of SLD values does not equal to num_layers + 2 (substrate + ambient).")
 
     sld = sld[:, None]
 
     # add zero thickness for ambient layer:
-    thickness = torch.cat([torch.zeros(batch_size, 1).to(thickness), thickness], -1)[
-        :, None
-    ]
+    thickness = torch.cat([torch.zeros(batch_size, 1).to(thickness), thickness], -1)[:, None]
 
     roughness = roughness[:, None] ** 2
 

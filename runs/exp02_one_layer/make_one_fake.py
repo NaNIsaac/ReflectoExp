@@ -9,7 +9,6 @@ from reflecto_exp.simulate.simul_refnx import ParamSet, XRRSimulator
 
 def generate_dummy_xrr(qs, param: ParamSet):
 
-
     n_layers: int = 2
     n_samples: int = 1_000_000
     sim: XRRSimulator = XRRSimulator(qs, n_layers, n_samples)
@@ -18,11 +17,12 @@ def generate_dummy_xrr(qs, param: ParamSet):
     return R
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from pathlib import Path
-        # q-space 생성 (당신 config와 동일)
+
+    # q-space 생성 (당신 config와 동일)
     wavelen: float = 1.54  # (nm)
-    tth_min: float = 1.0   # degree
+    tth_min: float = 1.0  # degree
     tth_max: float = 6.0
     q_min: float = tth2q(tth_min, wavelen)  # (1/Å)
     q_max: float = tth2q(tth_max, wavelen)

@@ -30,18 +30,20 @@ class XRRAnalyzer:
 
         # 시뮬레이션 (약간의 노이즈 추가 가능)
         R_clean = param2refl(qs, [true_params])
-        noise = np.random.normal(0, 0.02, size=len(R_clean)) # 가우시안 노이즈 시뮬레이션
+        noise = np.random.normal(0, 0.02, size=len(R_clean))  # 가우시안 노이즈 시뮬레이션
         R_noisy = np.abs(R_clean * (1 + noise))
 
         return qs, R_noisy, true_params
 
-    def analyze(self,
-                q: np.ndarray,
-                R: np.ndarray,
-                run_fitting: bool = True,
-                save_results: bool = False,
-                filename: str = "analysis_result",
-                true_params: ParamSet | None = None):
+    def analyze(
+        self,
+        q: np.ndarray,
+        R: np.ndarray,
+        run_fitting: bool = True,
+        save_results: bool = False,
+        filename: str = "analysis_result",
+        true_params: ParamSet | None = None,
+    ):
         """
         통합 분석 파이프라인
         - q, R: 입력 데이터
@@ -67,16 +69,12 @@ class XRRAnalyzer:
         # 3. GenX Refinement
         if run_fitting:
             print("Step 2: GenX Refinement (Fitting)...")
-            fit_config = XRRConfig(
-                thickness_search_ratio=(0.8, 1.2),
-                steps_structure=400,
-                steps_fine=600
-            )
+            fit_config = XRRConfig(thickness_search_ratio=(0.8, 1.2), steps_structure=400, steps_fine=600)
             fitter = GenXFitter(q, R, ai_guess, config=fit_config)
             res = fitter.run(verbose=False)
 
-            final_params = ParamSet(res['set_f_d'], res['set_f_sig'], res['set_f_sld'])
-            R_fit = res['R_sim']
+            final_params = ParamSet(res["set_f_d"], res["set_f_sig"], res["set_f_sld"])
+            R_fit = res["R_sim"]
             print(f"   [Final Fit] {final_params}")
 
         # 4. Final Comparison Visualization
@@ -87,26 +85,26 @@ class XRRAnalyzer:
     def _visualize_final(self, q, R, ai_p, final_p, R_fit, filename, save_results, true_p):
         """결과 통합 시각화 및 리포트"""
         plt.figure(figsize=(10, 7))
-        plt.plot(q, R, 'ko', markersize=3, alpha=0.2, label='Measured Data')
+        plt.plot(q, R, "ko", markersize=3, alpha=0.2, label="Measured Data")
 
         # AI Guess (파란 점선)
         R_ai = param2refl(q, [ai_p])
-        plt.plot(q, R_ai, 'b--', alpha=0.7, label=f'AI Guess (d={ai_p.thickness:.1f}Å)')
+        plt.plot(q, R_ai, "b--", alpha=0.7, label=f"AI Guess (d={ai_p.thickness:.1f}Å)")
 
         # Final Fit (빨간 실선)
-        plt.plot(q, R_fit, 'r-', lw=2, label=f'Final Fit (d={final_p.thickness:.1f}Å)')
+        plt.plot(q, R_fit, "r-", lw=2, label=f"Final Fit (d={final_p.thickness:.1f}Å)")
 
         # 만약 Ground Truth(테스트 데이터)가 있다면 표시
         if true_p:
-            plt.axvline(x=0, color='green', label=f'GT: d={true_p.thickness:.1f}Å', alpha=0)
-            print(f"🎯 Accuracy (Thick): {100 - abs(true_p.thickness - final_p.thickness)/true_p.thickness*100:.2f}%")
+            plt.axvline(x=0, color="green", label=f"GT: d={true_p.thickness:.1f}Å", alpha=0)
+            print(f"🎯 Accuracy (Thick): {100 - abs(true_p.thickness - final_p.thickness) / true_p.thickness * 100:.2f}%")
 
-        plt.yscale('log')
-        plt.xlabel(r'$q$ ($\AA^{-1}$)')
-        plt.ylabel('Reflectivity')
+        plt.yscale("log")
+        plt.xlabel(r"$q$ ($\AA^{-1}$)")
+        plt.ylabel("Reflectivity")
         plt.title(f"XRR Final Analysis: {filename}")
-        plt.legend(loc='upper right')
-        plt.grid(True, which='both', alpha=0.2)
+        plt.legend(loc="upper right")
+        plt.grid(True, which="both", alpha=0.2)
 
         if save_results:
             save_path = self.exp_dir / f"final_{filename}.png"
@@ -114,6 +112,7 @@ class XRRAnalyzer:
             print(f"📊 Final comparison plot saved: {save_path.name}")
 
         plt.show()
+
 
 # -----------------------------------------------------------------------------
 # Execution Block
@@ -126,11 +125,14 @@ if __name__ == "__main__":
     # --- [MODE 1] 직접 데이터 생성해서 테스트 ---
     print("\n>>> Running Mode 1: Synthetic Data Test")
     q_syn, R_syn, gt_params = analyzer.generate_test_data(thick=425.5, rough=3.2, sld=22.1)
-    analyzer.analyze(q_syn, R_syn,
-                    run_fitting=True,
-                    save_results=False, # 테스트 시 저장 안 함
-                    filename="synthetic_test",
-                    true_params=gt_params)
+    analyzer.analyze(
+        q_syn,
+        R_syn,
+        run_fitting=True,
+        save_results=False,  # 테스트 시 저장 안 함
+        filename="synthetic_test",
+        true_params=gt_params,
+    )
 
     # --- [MODE 2] 실측 파일 로드해서 분석 ---
     # print("\n>>> Running Mode 2: Real Data Analysis")

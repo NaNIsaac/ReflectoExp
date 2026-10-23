@@ -56,11 +56,7 @@ _2PI_SQRT = 1.0 / sqrt(2 * pi)
 
 
 def _batch_linspace(start: Tensor, end: Tensor, num: int):
-    return (
-        torch.linspace(0, 1, int(num), device=end.device, dtype=end.dtype)[None]
-        * (end - start)
-        + start
-    )
+    return torch.linspace(0, 1, int(num), device=end.device, dtype=end.dtype)[None] * (end - start) + start
 
 
 def _torch_gauss(x, s):
@@ -69,16 +65,11 @@ def _torch_gauss(x, s):
 
 def _get_t_gauss_kernels(resolutions: Tensor, gaussnum: int = 51):
     gauss_x = _batch_linspace(-1.7 * resolutions, 1.7 * resolutions, gaussnum)
-    gauss_y = (
-        _torch_gauss(gauss_x, resolutions / _FWHM)
-        * (gauss_x[:, 1] - gauss_x[:, 0])[:, None]
-    )
+    gauss_y = _torch_gauss(gauss_x, resolutions / _FWHM) * (gauss_x[:, 1] - gauss_x[:, 0])[:, None]
     return gauss_y
 
 
-def _get_q_axes(
-    q: Tensor, resolutions: Tensor, gaussnum: int = 51, xrr_dq: bool = True
-):
+def _get_q_axes(q: Tensor, resolutions: Tensor, gaussnum: int = 51, xrr_dq: bool = True):
     if xrr_dq:
         return _get_q_axes_for_constant_dq(q, resolutions, gaussnum)
     else:
@@ -94,30 +85,20 @@ def _get_q_axes_for_linear_dq(q: Tensor, resolutions: Tensor, gaussnum: int = 51
     start = torch.log10(lowq) - 6 * resolutions / _FWHM
     end = torch.log10(highq * (1 + 6 * resolutions / _FWHM))
 
-    interpnums = (
-        torch.abs((torch.abs(end - start)) / (1.7 * resolutions / _FWHM / gaussgpoint))
-        .round()
-        .to(int)
-    )
+    interpnums = torch.abs((torch.abs(end - start)) / (1.7 * resolutions / _FWHM / gaussgpoint)).round().to(int)
 
     q_lin = 10 ** _batch_linspace_with_padding(start, end, interpnums)
 
     return q_lin
 
 
-def _get_q_axes_for_constant_dq(
-    q: Tensor, resolutions: Tensor, gaussnum: int = 51
-) -> Tensor:
+def _get_q_axes_for_constant_dq(q: Tensor, resolutions: Tensor, gaussnum: int = 51) -> Tensor:
     gaussgpoint = (gaussnum - 1) / 2
 
     start = q.min(1).values[:, None] - resolutions * 1.7
     end = q.max(1).values[:, None] + resolutions * 1.7
 
-    interpnums = (
-        torch.abs((torch.abs(end - start)) / (1.7 * resolutions / gaussgpoint))
-        .round()
-        .to(int)
-    )
+    interpnums = torch.abs((torch.abs(end - start)) / (1.7 * resolutions / gaussgpoint)).round().to(int)
 
     q_lin = _batch_linspace_with_padding(start, end, interpnums)
     q_lin = torch.clamp_min_(q_lin, 1e-6)
@@ -130,9 +111,7 @@ def _batch_linspace_with_padding(start: Tensor, end: Tensor, nums: Tensor) -> Te
 
     deltas = 1 / (nums - 1)
 
-    x = torch.clamp_min_(
-        _batch_linspace(deltas * (nums - max_num), torch.ones_like(deltas), max_num), 0
-    )
+    x = torch.clamp_min_(_batch_linspace(deltas * (nums - max_num), torch.ones_like(deltas), max_num), 0)
 
     x = x * (end - start) + start
 
@@ -146,16 +125,9 @@ def _batch_linear_interp1d(x: Tensor, y: Tensor, x_new: Tensor) -> Tensor:
 
     ind = torch.clamp_(ind - 1, 0, x.shape[-1] - 2)
     slopes = (y[..., 1:] - y[..., :-1]) / (eps + (x[..., 1:] - x[..., :-1]))
-    ind_y = (
-        ind + torch.arange(slopes.shape[0], device=slopes.device)[:, None] * y.shape[1]
-    )
-    ind_slopes = (
-        ind
-        + torch.arange(slopes.shape[0], device=slopes.device)[:, None] * slopes.shape[1]
-    )
+    ind_y = ind + torch.arange(slopes.shape[0], device=slopes.device)[:, None] * y.shape[1]
+    ind_slopes = ind + torch.arange(slopes.shape[0], device=slopes.device)[:, None] * slopes.shape[1]
 
-    y_new = y.flatten()[ind_y] + slopes.flatten()[ind_slopes] * (
-        x_new - x.flatten()[ind_y]
-    )
+    y_new = y.flatten()[ind_y] + slopes.flatten()[ind_slopes] * (x_new - x.flatten()[ind_y])
 
     return y_new

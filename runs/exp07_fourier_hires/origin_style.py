@@ -35,68 +35,64 @@ REFERENCE = "#000000"
 
 def apply_origin_style() -> None:
     """전역 rcParams에 Origin 스타일 적용."""
-    mpl.rcParams.update({
-        # --- Font ---
-        "font.family": "sans-serif",
-        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
-        "font.size": 11,
-        "axes.titlesize": 12,
-        "axes.labelsize": 12,
-        "xtick.labelsize": 11,
-        "ytick.labelsize": 11,
-        "legend.fontsize": 10,
-        "mathtext.fontset": "dejavusans",
-
-        # --- Frame: 사방이 닫힌 박스 ---
-        "axes.linewidth": 1.2,
-        "axes.edgecolor": INK,
-        "axes.labelcolor": INK,
-        "axes.spines.top": True,
-        "axes.spines.right": True,
-
-        # --- Ticks: 안쪽, 사방 ---
-        "xtick.direction": "in",
-        "ytick.direction": "in",
-        "xtick.top": True,
-        "ytick.right": True,
-        "xtick.color": INK,
-        "ytick.color": INK,
-        "xtick.major.size": 5.0,
-        "ytick.major.size": 5.0,
-        "xtick.minor.size": 2.5,
-        "ytick.minor.size": 2.5,
-        "xtick.major.width": 1.2,
-        "ytick.major.width": 1.2,
-        "xtick.minor.width": 1.0,
-        "ytick.minor.width": 1.0,
-        "xtick.minor.visible": True,
-        "ytick.minor.visible": True,
-
-        # --- Grid: Origin 기본은 없음 ---
-        "axes.grid": False,
-
-        # --- Marks ---
-        "lines.linewidth": 1.5,
-        "lines.markersize": 6.0,
-        "lines.markeredgewidth": 1.0,
-        "axes.prop_cycle": mpl.cycler(color=ORIGIN_COLORS),
-
-        # --- Legend: 테두리 있는 불투명 박스 ---
-        "legend.frameon": True,
-        "legend.edgecolor": INK,
-        "legend.facecolor": "white",
-        "legend.framealpha": 1.0,
-        "legend.fancybox": False,
-        "legend.borderpad": 0.4,
-
-        # --- Surface ---
-        "figure.facecolor": "white",
-        "axes.facecolor": "white",
-        "savefig.facecolor": "white",
-        "savefig.dpi": 300,
-        "savefig.bbox": "tight",
-        "figure.dpi": 100,
-    })
+    mpl.rcParams.update(
+        {
+            # --- Font ---
+            "font.family": "sans-serif",
+            "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+            "font.size": 11,
+            "axes.titlesize": 12,
+            "axes.labelsize": 12,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+            "legend.fontsize": 10,
+            "mathtext.fontset": "dejavusans",
+            # --- Frame: 사방이 닫힌 박스 ---
+            "axes.linewidth": 1.2,
+            "axes.edgecolor": INK,
+            "axes.labelcolor": INK,
+            "axes.spines.top": True,
+            "axes.spines.right": True,
+            # --- Ticks: 안쪽, 사방 ---
+            "xtick.direction": "in",
+            "ytick.direction": "in",
+            "xtick.top": True,
+            "ytick.right": True,
+            "xtick.color": INK,
+            "ytick.color": INK,
+            "xtick.major.size": 5.0,
+            "ytick.major.size": 5.0,
+            "xtick.minor.size": 2.5,
+            "ytick.minor.size": 2.5,
+            "xtick.major.width": 1.2,
+            "ytick.major.width": 1.2,
+            "xtick.minor.width": 1.0,
+            "ytick.minor.width": 1.0,
+            "xtick.minor.visible": True,
+            "ytick.minor.visible": True,
+            # --- Grid: Origin 기본은 없음 ---
+            "axes.grid": False,
+            # --- Marks ---
+            "lines.linewidth": 1.5,
+            "lines.markersize": 6.0,
+            "lines.markeredgewidth": 1.0,
+            "axes.prop_cycle": mpl.cycler(color=ORIGIN_COLORS),
+            # --- Legend: 테두리 있는 불투명 박스 ---
+            "legend.frameon": True,
+            "legend.edgecolor": INK,
+            "legend.facecolor": "white",
+            "legend.framealpha": 1.0,
+            "legend.fancybox": False,
+            "legend.borderpad": 0.4,
+            # --- Surface ---
+            "figure.facecolor": "white",
+            "axes.facecolor": "white",
+            "savefig.facecolor": "white",
+            "savefig.dpi": 300,
+            "savefig.bbox": "tight",
+            "figure.dpi": 100,
+        }
+    )
 
 
 def style_axes(ax: plt.Axes, minor: bool = True) -> plt.Axes:
@@ -106,10 +102,8 @@ def style_axes(ax: plt.Axes, minor: bool = True) -> plt.Axes:
         spine.set_linewidth(1.2)
         spine.set_color(INK)
 
-    ax.tick_params(which="major", direction="in", length=5.0, width=1.2,
-                   top=True, right=True, color=INK)
-    ax.tick_params(which="minor", direction="in", length=2.5, width=1.0,
-                   top=True, right=True, color=INK)
+    ax.tick_params(which="major", direction="in", length=5.0, width=1.2, top=True, right=True, color=INK)
+    ax.tick_params(which="minor", direction="in", length=2.5, width=1.0, top=True, right=True, color=INK)
     if minor:
         ax.minorticks_on()
     ax.grid(False)

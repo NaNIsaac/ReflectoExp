@@ -22,11 +22,11 @@ def inspect_statistics(stats_file):
         print(f"❌ Stats file not found: {stats_file}")
         return None, None
 
-    stats = torch.load(stats_file, map_location='cpu')
+    stats = torch.load(stats_file, map_location="cpu")
 
     # Check Param Stats
-    p_mean = stats['param_mean'].numpy()
-    p_std = stats['param_std'].numpy()
+    p_mean = stats["param_mean"].numpy()
+    p_std = stats["param_std"].numpy()
 
     print(f"Parameter Mean: {p_mean}")
     print(f"Parameter Std : {p_std}")
@@ -39,36 +39,29 @@ def inspect_statistics(stats_file):
 
     return p_mean, p_std
 
+
 def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
     print(f"\n=== [2] Preprocessing Check (Sample {sample_idx}) ===")
 
     # 1. Load Raw Data
-    with h5py.File(h5_file, 'r') as hf:
-        q_raw = hf['q'][:]
-        R_raw = hf['R'][sample_idx]
+    with h5py.File(h5_file, "r") as hf:
+        q_raw = hf["q"][:]
+        R_raw = hf["R"][sample_idx]
 
         # Load params
-        d = hf['thickness'][sample_idx]
-        sig = hf['roughness'][sample_idx]
-        sld = hf['sld'][sample_idx]
+        d = hf["thickness"][sample_idx]
+        sig = hf["roughness"][sample_idx]
+        sld = hf["sld"][sample_idx]
         print(f"Target Params: d={d}, sig={sig}, sld={sld}")
 
     # 2. Setup Preprocessor
     # Config에서 설정 가져오기
-    sim_conf = CONFIG['simulation']
+    sim_conf = CONFIG["simulation"]
 
     # Power Grid 생성 (학습 때와 동일해야 함)
-    target_qs = powerspace(
-        sim_conf['q_min'],
-        sim_conf['q_max'],
-        sim_conf['q_points'],
-        power=sim_conf['power']
-    ).astype(np.float32)
+    target_qs = powerspace(sim_conf["q_min"], sim_conf["q_max"], sim_conf["q_points"], power=sim_conf["power"]).astype(np.float32)
 
-    processor = XRRPreprocessor(
-        qs=target_qs,
-        stats_file=stats_file
-    )
+    processor = XRRPreprocessor(qs=target_qs, stats_file=stats_file)
 
     # 3. Step-by-Step Preprocessing & Visualization
 
@@ -95,7 +88,7 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
 
     # Plot 1: Raw Linear Data
     plt.subplot(2, 2, 1)
-    plt.plot(q_raw, np.log10(np.maximum(R_raw, 1e-15)), 'k-', label='Raw Data (Linear Grid)')
+    plt.plot(q_raw, np.log10(np.maximum(R_raw, 1e-15)), "k-", label="Raw Data (Linear Grid)")
     plt.title(f"Raw Input (Linear q)\nRange: {q_raw.min():.2f} ~ {q_raw.max():.2f}")
     plt.xlabel("q")
     plt.ylabel("log10(R)")
@@ -104,8 +97,8 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
 
     # Plot 2: Model Input (Resampled)
     plt.subplot(2, 2, 2)
-    plt.plot(target_qs, model_input_R, 'b.-', label='Processed Input (Power Grid)')
-    plt.plot(target_qs, model_input_M * np.min(model_input_R), 'r-', alpha=0.3, label='Mask')
+    plt.plot(target_qs, model_input_R, "b.-", label="Processed Input (Power Grid)")
+    plt.plot(target_qs, model_input_M * np.min(model_input_R), "r-", alpha=0.3, label="Mask")
 
     plt.title(f"Model Input (Resampled)\nRange: {target_qs.min():.2f} ~ {target_qs.max():.2f}")
     plt.xlabel("q (Power Space)")
@@ -118,15 +111,14 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
     out_of_range_indices = np.where(model_input_M == 0)[0]
     if len(out_of_range_indices) > 0:
         bg_val = np.mean(model_input_R[out_of_range_indices])
-        plt.text(0.5, 0.5, f"Background Level: {bg_val:.2f}",
-                 transform=plt.gca().transAxes, fontsize=12, color='red', fontweight='bold')
+        plt.text(0.5, 0.5, f"Background Level: {bg_val:.2f}", transform=plt.gca().transAxes, fontsize=12, color="red", fontweight="bold")
         if bg_val > -5.0:
-             print(f"🚨 CRITICAL WARNING: Background level is too high ({bg_val:.2f})! It should be around -15.0.")
-             print("   -> Fix 'dataset.py' np.interp left/right arguments.")
+            print(f"🚨 CRITICAL WARNING: Background level is too high ({bg_val:.2f})! It should be around -15.0.")
+            print("   -> Fix 'dataset.py' np.interp left/right arguments.")
 
     # Plot 3: Grid Density Check
     plt.subplot(2, 2, 3)
-    plt.plot(target_qs[:-1], np.diff(target_qs), 'g.-')
+    plt.plot(target_qs[:-1], np.diff(target_qs), "g.-")
     plt.title(f"Grid Spacing (dq)\nPower={sim_conf['power']}")
     plt.xlabel("q")
     plt.ylabel("dq")
@@ -134,6 +126,7 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
 
     plt.tight_layout()
     plt.show()
+
 
 if __name__ == "__main__":
     base_path = Path(CONFIG["base_dir"]) / CONFIG["exp_name"]
@@ -143,5 +136,4 @@ if __name__ == "__main__":
     inspect_statistics(stats_path)
 
     for i in [0, 100, 500]:
-
-            inspect_preprocessing(h5_path, stats_path, sample_idx=i)
+        inspect_preprocessing(h5_path, stats_path, sample_idx=i)

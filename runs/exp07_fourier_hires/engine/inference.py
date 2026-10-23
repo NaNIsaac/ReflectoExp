@@ -12,7 +12,8 @@ from reflecto_exp.simulate.simul_genx import ParamSet, param2refl
 
 class XRRPreprocessor:
     """XRR 데이터 전처리 및 역변환을 담당하는 유틸리티 클래스"""
-    def __init__(self, qs: np.ndarray, stats_file: Path | str | None = None, device: torch.device = torch.device('cpu')):
+
+    def __init__(self, qs: np.ndarray, stats_file: Path | str | None = None, device: torch.device = torch.device("cpu")):
         self.target_q = qs
         self.device = device
         self.param_mean = None
@@ -40,10 +41,7 @@ class XRRPreprocessor:
         R_interp = np.interp(self.target_q, q_raw, R_log, left=-15.0, right=-15.0)
         q_valid_mask = (self.target_q >= np.min(q_raw)) & (self.target_q <= np.max(q_raw))
 
-        return torch.stack([
-            torch.from_numpy(R_interp.astype(np.float32)),
-            torch.from_numpy(q_valid_mask.astype(np.float32))
-        ], dim=0)
+        return torch.stack([torch.from_numpy(R_interp.astype(np.float32)), torch.from_numpy(q_valid_mask.astype(np.float32))], dim=0)
 
     def denormalize(self, params_norm: torch.Tensor) -> np.ndarray:
         """모델의 정규화된 출력을 실제 물리량(A, x10^-6 A^-2)으로 변환"""
@@ -84,18 +82,18 @@ class XRRInferenceEngine:
     def _load_model(self):
         m_conf = self.config["model"]
         model_args = {
-            'q_len': len(self.target_qs),
-            'input_channels': 2,
-            'n_channels': m_conf["n_channels"],
-            'depth': m_conf["depth"],
-            'mlp_hidden': m_conf["mlp_hidden"],
-            'dropout': 0.0,
-            'use_fourier': m_conf.get("use_fourier", True),
-            'fourier_scale': m_conf.get("fourier_scale", 10.0)
+            "q_len": len(self.target_qs),
+            "input_channels": 2,
+            "n_channels": m_conf["n_channels"],
+            "depth": m_conf["depth"],
+            "mlp_hidden": m_conf["mlp_hidden"],
+            "dropout": 0.0,
+            "use_fourier": m_conf.get("use_fourier", True),
+            "fourier_scale": m_conf.get("fourier_scale", 10.0),
         }
         self.model = XRRPhysicsModel(**model_args).to(self.device)
         ckpt = torch.load(self.exp_dir / "best.pt", map_location=self.device, weights_only=True)
-        self.model.load_state_dict(ckpt['model_state_dict'])
+        self.model.load_state_dict(ckpt["model_state_dict"])
         self.model.eval()
 
     def predict(self, q_raw: np.ndarray, R_raw: np.ndarray) -> ParamSet:
@@ -117,15 +115,15 @@ class XRRInferenceEngine:
         R_ai = param2refl(q_measured, [ai_params])
 
         plt.figure(figsize=(10, 6))
-        plt.plot(q_measured, i0_normalize(R_measured), 'ko', markersize=3, alpha=0.3, label='Measured Data')
-        plt.plot(q_measured, R_ai, 'r--', lw=2, label=f'AI Guess (d={ai_params.thickness:.1f}Å)')
+        plt.plot(q_measured, i0_normalize(R_measured), "ko", markersize=3, alpha=0.3, label="Measured Data")
+        plt.plot(q_measured, R_ai, "r--", lw=2, label=f"AI Guess (d={ai_params.thickness:.1f}Å)")
 
-        plt.yscale('log')
-        plt.xlabel(r'$q$ ($\AA^{-1}$)')
-        plt.ylabel('Reflectivity')
-        plt.title('Initial AI Prediction (Guess)', fontsize=14, fontweight='bold')
+        plt.yscale("log")
+        plt.xlabel(r"$q$ ($\AA^{-1}$)")
+        plt.ylabel("Reflectivity")
+        plt.title("Initial AI Prediction (Guess)", fontsize=14, fontweight="bold")
         plt.legend()
-        plt.grid(True, which='both', alpha=0.2)
+        plt.grid(True, which="both", alpha=0.2)
 
         if save_path:
             plt.savefig(save_path, dpi=150)

@@ -61,7 +61,7 @@ def core_metrics(true: np.ndarray, pred: np.ndarray) -> dict:
     return {
         "n": len(true),
         "MAE": float(abs_err.mean()),
-        "RMSE": float(np.sqrt((err ** 2).mean())),
+        "RMSE": float(np.sqrt((err**2).mean())),
         "MedAE": float(np.median(abs_err)),
         "P90_AE": float(np.percentile(abs_err, 90)),
         "P95_AE": float(np.percentile(abs_err, 95)),
@@ -93,8 +93,7 @@ def build_extended(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     for variant, df in dfs.items():
         for key, name, unit in PARAMS:
             m = core_metrics(df[f"{key}_True"].to_numpy(), df[f"{key}_Pred"].to_numpy())
-            rows.append({"variant": variant, "label": REPORT_LABELS.get(variant, ""),
-                         "parameter": name, "unit": unit, **m})
+            rows.append({"variant": variant, "label": REPORT_LABELS.get(variant, ""), "parameter": name, "unit": unit, **m})
     return pd.DataFrame(rows)
 
 
@@ -126,9 +125,14 @@ def build_by_thickness(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
             if mask.sum() == 0:
                 continue
             sub = df[mask]
-            row = {"variant": variant, "label": REPORT_LABELS.get(variant, ""),
-                   "band": f"{lo}-{hi} Å", "band_lo": lo, "band_hi": hi,
-                   "n": int(mask.sum())}
+            row = {
+                "variant": variant,
+                "label": REPORT_LABELS.get(variant, ""),
+                "band": f"{lo}-{hi} Å",
+                "band_lo": lo,
+                "band_hi": hi,
+                "n": int(mask.sum()),
+            }
             for key, name, _ in PARAMS:
                 m = core_metrics(sub[f"{key}_True"].to_numpy(), sub[f"{key}_Pred"].to_numpy())
                 row[f"{name}_MAE"] = m["MAE"]
@@ -141,8 +145,7 @@ def build_by_thickness(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
 # -----------------------------------------------------------------------------
 # 비용 / 속도
 # -----------------------------------------------------------------------------
-def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path,
-                        n_batches: int = 30) -> dict:
+def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path, n_batches: int = 30) -> dict:
     """test 로더로 실제 추론 처리량을 잰다. 데이터 로딩을 빼고 순수 forward만 잰다."""
     import time
 
@@ -162,8 +165,7 @@ def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path,
     model_args = ckpt.get("config", {}).get("model_args", {})
     model = XRRPhysicsModel(**model_args).to(device).eval()
 
-    (loader,) = make_loaders(qs, cfg, h5_file, var_dir / "stats.pt",
-                             modes=["test"], num_workers=0)
+    (loader,) = make_loaders(qs, cfg, h5_file, var_dir / "stats.pt", modes=["test"], num_workers=0)
 
     # 배치를 미리 GPU로 올려두고 forward만 반복 측정한다
     batches = []
@@ -175,7 +177,7 @@ def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path,
         return {}
 
     with torch.inference_mode():
-        for _ in range(3):                       # warm-up (cudnn autotune 포함)
+        for _ in range(3):  # warm-up (cudnn autotune 포함)
             model(batches[0])
         if device.type == "cuda":
             torch.cuda.synchronize()
@@ -196,8 +198,7 @@ def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path,
     }
 
 
-def build_cost(variants: list[str], ablation_dir: Path, h5_file: Path,
-               benchmark: bool) -> pd.DataFrame:
+def build_cost(variants: list[str], ablation_dir: Path, h5_file: Path, benchmark: bool) -> pd.DataFrame:
     summary_path = ablation_dir / "ablation_summary.csv"
     summary = pd.read_csv(summary_path).set_index("variant") if summary_path.exists() else None
 
@@ -216,9 +217,18 @@ def build_cost(variants: list[str], ablation_dir: Path, h5_file: Path,
 
         if summary is not None and v in summary.index:
             s = summary.loc[v]
-            for col in ["params", "train_samples", "epochs_budget", "epochs_ran",
-                        "best_epoch", "early_stopped", "steps_per_epoch",
-                        "total_steps", "best_val_loss", "train_seconds"]:
+            for col in [
+                "params",
+                "train_samples",
+                "epochs_budget",
+                "epochs_ran",
+                "best_epoch",
+                "early_stopped",
+                "steps_per_epoch",
+                "total_steps",
+                "best_val_loss",
+                "train_seconds",
+            ]:
                 if col in summary.columns:
                     row[col] = s[col]
 
@@ -253,8 +263,7 @@ def fmt(df: pd.DataFrame, floatfmt: str = "{:.4g}") -> str:
     widths = [max(len(c), *(len(v) for v in out[c])) if len(out) else len(c) for c in cols]
     header = "| " + " | ".join(c.ljust(w) for c, w in zip(cols, widths, strict=True)) + " |"
     sep = "|" + "|".join("-" * (w + 2) for w in widths) + "|"
-    body = ["| " + " | ".join(str(v).ljust(w) for v, w in zip(row, widths, strict=True)) + " |"
-            for row in out.itertuples(index=False, name=None)]
+    body = ["| " + " | ".join(str(v).ljust(w) for v, w in zip(row, widths, strict=True)) + " |" for row in out.itertuples(index=False, name=None)]
     return "\n".join([header, sep, *body])
 
 
@@ -283,10 +292,22 @@ def write_markdown(path: Path, tables: dict, budget_note: str):
     for tag in ["augmented", "clean"]:
         if f"extended_{tag}" not in tables:
             continue
-        lines += [f"## 평가 도메인: {tag}", "",
-                  "### 파라미터별 오차 지표", "", fmt(tables[f"extended_{tag}"]), "",
-                  "### 허용오차 내 샘플 비율 (%)", "", fmt(tables[f"tolerance_{tag}"], "{:.2f}"), "",
-                  "### 두께 구간별 분해", "", fmt(tables[f"by_thickness_{tag}"]), ""]
+        lines += [
+            f"## 평가 도메인: {tag}",
+            "",
+            "### 파라미터별 오차 지표",
+            "",
+            fmt(tables[f"extended_{tag}"]),
+            "",
+            "### 허용오차 내 샘플 비율 (%)",
+            "",
+            fmt(tables[f"tolerance_{tag}"], "{:.2f}"),
+            "",
+            "### 두께 구간별 분해",
+            "",
+            fmt(tables[f"by_thickness_{tag}"]),
+            "",
+        ]
 
     if "cost" in tables:
         lines += ["## 비용 / 속도", "", fmt(tables["cost"]), ""]
@@ -297,12 +318,9 @@ def write_markdown(path: Path, tables: dict, budget_note: str):
 
 def main():
     parser = argparse.ArgumentParser(description="exp07 확장 지표 산출")
-    parser.add_argument("--only", nargs="+", default=None,
-                        help=f"대상 variant (기본: 전체). 선택지: {list(VARIANTS)}")
-    parser.add_argument("--domains", nargs="+", default=["augmented", "clean"],
-                        choices=["augmented", "clean"])
-    parser.add_argument("--benchmark", action="store_true",
-                        help="추론 처리량을 실제 GPU에서 측정 (모델 로드 필요)")
+    parser.add_argument("--only", nargs="+", default=None, help=f"대상 variant (기본: 전체). 선택지: {list(VARIANTS)}")
+    parser.add_argument("--domains", nargs="+", default=["augmented", "clean"], choices=["augmented", "clean"])
+    parser.add_argument("--benchmark", action="store_true", help="추론 처리량을 실제 GPU에서 측정 (모델 로드 필요)")
     args = parser.parse_args()
 
     variants = args.only or list(VARIANTS)
@@ -344,8 +362,7 @@ def main():
     print("  [Save] metrics_cost.csv")
 
     steps = tables["cost"]["total_steps"].max() if "total_steps" in tables["cost"] else None
-    budget_note = (f"> 학습 예산: variant당 약 {int(steps):,} optimizer steps (step-matched)"
-                   if steps and not pd.isna(steps) else "")
+    budget_note = f"> 학습 예산: variant당 약 {int(steps):,} optimizer steps (step-matched)" if steps and not pd.isna(steps) else ""
     write_markdown(out_dir / "METRICS.md", tables, budget_note)
 
     print(f"\n✅ 지표 산출 완료 → {out_dir}")

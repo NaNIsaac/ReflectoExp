@@ -16,7 +16,7 @@ class XRRAugmentations:
         prob: float = 0.95,
         beam_width_range: tuple = (0.005, 0.015),
         sample_len_range: tuple = (5, 30.0),
-        do_footprint: bool = True
+        do_footprint: bool = True,
     ):
         self.intensity_noise_scale = intensity_noise_scale
         self.bg_range = bg_range

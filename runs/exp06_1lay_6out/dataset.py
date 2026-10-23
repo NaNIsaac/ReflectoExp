@@ -13,11 +13,8 @@ class XRRPreprocessor:
     Shared class for XRR data preprocessing and inverse transformation.
     (Used by both Dataset and InferenceEngine)
     """
-    def __init__(self,
-        qs: np.ndarray,
-        stats_file: Path | str | None = None,
-        device: torch.device = torch.device('cpu')
-    ):
+
+    def __init__(self, qs: np.ndarray, stats_file: Path | str | None = None, device: torch.device = torch.device("cpu")):
         # 1. Set up Master Grid
         self.target_q = qs
         self.device = device
@@ -90,9 +87,16 @@ class XRR1LayerDataset(Dataset):
     """
 
     def __init__(
-        self, qs: np.ndarray, h5_file: str | Path, stats_file: str | Path,
-        mode: str = "train", val_ratio: float = 0.2, test_ratio: float = 0.1,
-        augment: bool = False, aug_prob: float = 0.5, min_scan_range: float = 0.15
+        self,
+        qs: np.ndarray,
+        h5_file: str | Path,
+        stats_file: str | Path,
+        mode: str = "train",
+        val_ratio: float = 0.2,
+        test_ratio: float = 0.1,
+        augment: bool = False,
+        aug_prob: float = 0.5,
+        min_scan_range: float = 0.15,
     ):
 
         self.h5_path = Path(h5_file)
@@ -101,7 +105,7 @@ class XRR1LayerDataset(Dataset):
 
         # Grid & Augmentation
         self.target_q = qs
-        self.augment = augment and (mode == 'train')
+        self.augment = augment and (mode == "train")
         self.aug_prob = aug_prob
         self.min_scan_range = min_scan_range
 
@@ -163,22 +167,22 @@ class XRR1LayerDataset(Dataset):
         elif self.mode == "train":
             print(f"[{self.mode}] Calculating statistics from training data...")
             train_indices = range(0, self.train_end)
-            params = np.stack([
-                self.thickness[train_indices],
-                self.roughness[train_indices],
-                self.sld[train_indices],
-                self.sio2_thickness[train_indices],
-                self.sio2_roughness[train_indices],
-                self.sio2_sld[train_indices],
-            ], axis=1)
+            params = np.stack(
+                [
+                    self.thickness[train_indices],
+                    self.roughness[train_indices],
+                    self.sld[train_indices],
+                    self.sio2_thickness[train_indices],
+                    self.sio2_roughness[train_indices],
+                    self.sio2_sld[train_indices],
+                ],
+                axis=1,
+            )
 
             self.param_mean = np.mean(params, axis=0)
-            self.param_std = np.std(params, axis=0) + 1e-8 # Prevent division by zero
+            self.param_std = np.std(params, axis=0) + 1e-8  # Prevent division by zero
 
-            torch.save({
-                "param_mean": torch.from_numpy(self.param_mean),
-                "param_std": torch.from_numpy(self.param_std)
-            }, self.stats_path)
+            torch.save({"param_mean": torch.from_numpy(self.param_mean), "param_std": torch.from_numpy(self.param_std)}, self.stats_path)
         else:
             raise FileNotFoundError(f"Stats file not found at {self.stats_path}. Run 'train' first.")
 
@@ -200,7 +204,7 @@ class XRR1LayerDataset(Dataset):
 
     def _get_raw_data(self, idx):
         if self.hf is None:
-            self.hf = h5py.File(self.h5_path, 'r', swmr=True)
+            self.hf = h5py.File(self.h5_path, "r", swmr=True)
 
         R_raw = self.hf["R"][idx]
         R_raw = add_noise(R_raw)
@@ -209,14 +213,17 @@ class XRR1LayerDataset(Dataset):
         else:
             q_raw = self.source_q[idx]
 
-        params_raw = np.array([
-            self.thickness[idx],
-            self.roughness[idx],
-            self.sld[idx],
-            self.sio2_thickness[idx],
-            self.sio2_roughness[idx],
-            self.sio2_sld[idx],
-        ], dtype=np.float32)
+        params_raw = np.array(
+            [
+                self.thickness[idx],
+                self.roughness[idx],
+                self.sld[idx],
+                self.sio2_thickness[idx],
+                self.sio2_roughness[idx],
+                self.sio2_sld[idx],
+            ],
+            dtype=np.float32,
+        )
 
         return R_raw, q_raw, params_raw
 

@@ -8,7 +8,6 @@ from reflecto_exp.physics_utils import tth2q
 CONFIG = {
     "exp_name": "1230",
     "base_dir": Path(r"C:\WorkSpace\05_Resources\Data\XRR_AI\exp07"),
-
     "param_ranges": {
         "thickness": (10.0, 1200.0),
         "roughness": (0.0, 15.0),
@@ -41,14 +40,12 @@ CONFIG = {
         "test_ratio": 0.1,
         "patience": 50,
         "num_workers": 4,
-
         "augment": True,
         "expand_factor": 50,
         "aug_prob": 0.9,
         "intensity_scale": 0.25,
         "q_shift_sigma": 0.004,
         "res_sigma_range": (0.0001, 0.006),
-
         # 평가셋에도 augmentation을 적용할지 여부.
         # False = clean simulation으로 평가 (실측 대비 낙관적)
         # True  = 측정 노이즈가 실린 조건에서 평가
@@ -59,6 +56,7 @@ CONFIG = {
         "hooks": False,
     },
 }
+
 
 def save_config(config: dict, file: Path | str):
     def _to_serializable(obj):
@@ -84,4 +82,5 @@ def save_config(config: dict, file: Path | str):
 
 if __name__ == "__main__":
     from pprint import pprint
+
     pprint(CONFIG)

@@ -13,15 +13,19 @@ class Trainer:
     Trainer class for XRR 1D Regressor.
     Handles training loop, validation, checkpointing, and early stopping.
     """
-    def __init__(self,
-        model: nn.Module, train_loader: DataLoader,
+
+    def __init__(
+        self,
+        model: nn.Module,
+        train_loader: DataLoader,
         val_loader: DataLoader,
         save_dir: str | Path,
-        lr: float = 1e-3, weight_decay: float = 1e-4,
-        patience: int = 15
+        lr: float = 1e-3,
+        weight_decay: float = 1e-4,
+        patience: int = 15,
     ):
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
 
         self.train_loader = train_loader
@@ -39,23 +43,21 @@ class Trainer:
 
         # Scheduler: Reduce Learning Rate when validation loss plateaus
         # Note: 'verbose' argument is deprecated in newer PyTorch versions, removed here.
-        self.scheduler = ReduceLROnPlateau(
-            self.optimizer, mode='min', patience=5, factor=0.5
-        )
+        self.scheduler = ReduceLROnPlateau(self.optimizer, mode="min", patience=5, factor=0.5)
 
         # Training State
-        self.best_val_loss = float('inf')
+        self.best_val_loss = float("inf")
         self.patience_counter = 0
         self.early_stop_patience = patience
 
         self.history = {"train": [], "val": [], "lr": []}
-        self.scaler = torch.amp.GradScaler('cuda')
+        self.scaler = torch.amp.GradScaler("cuda")
 
         print(f"🚀 Trainer initialized on {self.device}")
 
     def _train_epoch(self, epoch: int, total_epochs: int) -> float:
         """Runs a single training epoch."""
-        if self.device.type == 'cuda':
+        if self.device.type == "cuda":
             torch.cuda.empty_cache()
 
         self.model.train()
@@ -71,7 +73,7 @@ class Trainer:
             self.optimizer.zero_grad(set_to_none=True)
 
             # Forward pass
-            with torch.amp.autocast('cuda'):
+            with torch.amp.autocast("cuda"):
                 preds = self.model(inputs)
                 loss = self.criterion(preds, targets)
 
@@ -87,7 +89,7 @@ class Trainer:
             self.scaler.update()
 
             running_loss += loss.item()
-            pbar.set_postfix({'loss': f'{loss.item():.5f}'})
+            pbar.set_postfix({"loss": f"{loss.item():.5f}"})
 
         avg_loss = running_loss / len(self.train_loader)
         return avg_loss
@@ -124,15 +126,15 @@ class Trainer:
             val_loss = self._validate()
 
             #  Update History
-            self.history['train'].append(train_loss)
-            self.history['val'].append(val_loss)
-            self.history['lr'].append(self.optimizer.param_groups[0]['lr'])
+            self.history["train"].append(train_loss)
+            self.history["val"].append(val_loss)
+            self.history["lr"].append(self.optimizer.param_groups[0]["lr"])
 
             # Scheduler Step
             self.scheduler.step(val_loss)
 
             # Log current Learning Rate
-            current_lr = self.optimizer.param_groups[0]['lr']
+            current_lr = self.optimizer.param_groups[0]["lr"]
 
             print(f"Epoch {epoch:03d} | Train Loss: {train_loss:.6f} | Val Loss: {val_loss:.6f} | LR: {current_lr:.2e}")
 
@@ -158,20 +160,21 @@ class Trainer:
         path = self.checkpoint_dir / filename
 
         # Save model configuration for easier inference later
-        model_config = self.model.config if hasattr(self.model, 'config') else {}
+        model_config = self.model.config if hasattr(self.model, "config") else {}
 
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
-            'scheduler_state_dict': self.scheduler.state_dict(),
-            'val_loss': val_loss,
-            'best_val_loss': self.best_val_loss,
-            'history': self.history,
-            'config': {
-                'model_args': model_config
-            }
-        }, path)
+        torch.save(
+            {
+                "epoch": epoch,
+                "model_state_dict": self.model.state_dict(),
+                "optimizer_state_dict": self.optimizer.state_dict(),
+                "scheduler_state_dict": self.scheduler.state_dict(),
+                "val_loss": val_loss,
+                "best_val_loss": self.best_val_loss,
+                "history": self.history,
+                "config": {"model_args": model_config},
+            },
+            path,
+        )
 
     def _load_checkpoint(self, filepath: str | Path) -> int:
         """Loads a checkpoint to resume training."""
@@ -182,19 +185,19 @@ class Trainer:
 
         checkpoint = torch.load(filepath, map_location=self.device)
 
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.model.load_state_dict(checkpoint["model_state_dict"])
 
-        if 'optimizer_state_dict' in checkpoint:
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        if 'scheduler_state_dict' in checkpoint:
-            self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        if 'scaler_state_dict' in checkpoint:
-            self.scaler.load_state_dict(checkpoint['scaler_state_dict'])
+        if "optimizer_state_dict" in checkpoint:
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        if "scheduler_state_dict" in checkpoint:
+            self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        if "scaler_state_dict" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["scaler_state_dict"])
 
-        self.history = checkpoint.get('history', {'train': [], 'val': [], 'lr': []})
+        self.history = checkpoint.get("history", {"train": [], "val": [], "lr": []})
 
-        self.best_val_loss = checkpoint.get('best_val_loss', float('inf'))
-        start_epoch = checkpoint.get('epoch', 0) + 1
+        self.best_val_loss = checkpoint.get("best_val_loss", float("inf"))
+        start_epoch = checkpoint.get("epoch", 0) + 1
 
         print(f"Checkpoint loaded: {filepath} (Resuming from Epoch {start_epoch})")
         return start_epoch

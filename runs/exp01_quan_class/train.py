@@ -43,10 +43,8 @@ class XRRTrainer:
         self.train_dataset = DatasetH5(self.h5_path, self.quantizer, device="cpu")
         self.val_dataset = DatasetH5(self.h5_path, self.quantizer, device="cpu")
 
-        self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True,
-                                       num_workers=4, pin_memory=True)
-        self.val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False,
-                                     num_workers=4, pin_memory=True)
+        self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=4, pin_memory=True)
+        self.val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
         # Model
         sample_refl, sample_label = self.train_dataset[0]
@@ -54,13 +52,9 @@ class XRRTrainer:
         self.n_layers = sample_label.shape[0]
         print(f"Detected q_len: {self.q_len}, n_layers: {self.n_layers}")
 
-        self.model = XRRClassifier(
-            q_len=self.q_len,
-            n_layers=self.n_layers,
-            n_th_bins=self.n_th,
-            n_rg_bins=self.n_rg,
-            n_sld_bins=self.n_sld
-        ).to(self.device)
+        self.model = XRRClassifier(q_len=self.q_len, n_layers=self.n_layers, n_th_bins=self.n_th, n_rg_bins=self.n_rg, n_sld_bins=self.n_sld).to(
+            self.device
+        )
 
         self.optimizer = AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         self.scheduler = StepLR(self.optimizer, step_size=scheduler_step, gamma=scheduler_gamma)

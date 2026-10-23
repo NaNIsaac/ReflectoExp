@@ -50,22 +50,21 @@ class XRR1LayerDataset(Dataset):
             self.refl_mean = np.mean(R_log, axis=0)
             self.refl_std = np.std(R_log, axis=0)
 
-            params = np.stack([
-                self.thickness[train_indices],
-                self.roughness[train_indices],
-                self.sld[train_indices]
-            ], axis=1)
+            params = np.stack([self.thickness[train_indices], self.roughness[train_indices], self.sld[train_indices]], axis=1)
 
             self.param_mean = np.mean(params, axis=0)
             self.param_std = np.std(params, axis=0)
 
             # torch tensor로 저장하여 torch.load 문제 해결
-            torch.save({
-                "refl_mean": torch.from_numpy(self.refl_mean),
-                "refl_std": torch.from_numpy(self.refl_std),
-                "param_mean": torch.from_numpy(self.param_mean),
-                "param_std": torch.from_numpy(self.param_std),
-            }, self.stats_path)
+            torch.save(
+                {
+                    "refl_mean": torch.from_numpy(self.refl_mean),
+                    "refl_std": torch.from_numpy(self.refl_std),
+                    "param_mean": torch.from_numpy(self.param_mean),
+                    "param_std": torch.from_numpy(self.param_std),
+                },
+                self.stats_path,
+            )
             print(f"정규화 파라미터 저장: {self.stats_path}")
 
         else:
@@ -88,18 +87,12 @@ class XRR1LayerDataset(Dataset):
         R_norm = (R_log - self.refl_mean) / self.refl_std
 
         # 파라미터
-        params = np.array([
-            self.thickness[real_idx],
-            self.roughness[real_idx],
-            self.sld[real_idx]
-        ], dtype=np.float32)
+        params = np.array([self.thickness[real_idx], self.roughness[real_idx], self.sld[real_idx]], dtype=np.float32)
 
         params_norm = (params - self.param_mean) / self.param_std
 
-        return (
-            torch.from_numpy(R_norm).float(),
-            torch.from_numpy(params_norm).float()
-        )
+        return (torch.from_numpy(R_norm).float(), torch.from_numpy(params_norm).float())
+
     def denormalize_params(self, params_norm: torch.Tensor | np.ndarray) -> np.ndarray:
         """모델 출력(정규화된)을 실제 물리 파라미터 스케일로 복원."""
         if isinstance(params_norm, torch.Tensor):
@@ -107,6 +100,7 @@ class XRR1LayerDataset(Dataset):
 
         params = params_norm * self.param_std + self.param_mean
         return params
+
     def normalize_reflectivity(self, R_real: np.ndarray) -> torch.Tensor:
         """실험 R 데이터를 모델 입력용으로 정규화."""
         R_log = np.log10(np.maximum(R_real, 1e-15))

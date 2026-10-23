@@ -23,32 +23,14 @@ class FusedTrainer:
         self.device = torch.device(config.get("device", "cuda" if torch.cuda.is_available() else "cpu"))
 
         # 1. DataLoader 설정 (정규화 범위 전달)
-        self.train_dataset = FusedDatasetH5(
-            config["h5_path"],
-            mode="train",
-            val_ratio=config["val_ratio"],
-            norm_ranges=config.get("norm_ranges")
-        )
-        self.val_dataset = FusedDatasetH5(
-            config["h5_path"],
-            mode="val",
-            val_ratio=config["val_ratio"],
-            norm_ranges=config.get("norm_ranges")
-        )
+        self.train_dataset = FusedDatasetH5(config["h5_path"], mode="train", val_ratio=config["val_ratio"], norm_ranges=config.get("norm_ranges"))
+        self.val_dataset = FusedDatasetH5(config["h5_path"], mode="val", val_ratio=config["val_ratio"], norm_ranges=config.get("norm_ranges"))
 
         self.train_loader = DataLoader(
-            self.train_dataset,
-            batch_size=config["batch_size"],
-            shuffle=True,
-            num_workers=config.get("num_workers", 4),
-            pin_memory=True
+            self.train_dataset, batch_size=config["batch_size"], shuffle=True, num_workers=config.get("num_workers", 4), pin_memory=True
         )
         self.val_loader = DataLoader(
-            self.val_dataset,
-            batch_size=config["batch_size"],
-            shuffle=False,
-            num_workers=config.get("num_workers", 4),
-            pin_memory=True
+            self.val_dataset, batch_size=config["batch_size"], shuffle=False, num_workers=config.get("num_workers", 4), pin_memory=True
         )
 
         # 2. Model 초기화 (정규화 범위 전달)
@@ -58,20 +40,11 @@ class FusedTrainer:
         q_values = sample["q_values"]
 
         self.model = FusedPhysicsRegressor(
-            q_len=q_len,
-            n_layers=n_layers,
-            q_values=q_values,
-            physics_weight=config.get("physics_weight", 0.5),
-            norm_ranges=config.get("norm_ranges")
+            q_len=q_len, n_layers=n_layers, q_values=q_values, physics_weight=config.get("physics_weight", 0.5), norm_ranges=config.get("norm_ranges")
         ).to(self.device)
 
         # 3. Optimizer & Scheduler
-        self.optimizer = AdamW(
-            self.model.parameters(),
-            lr=config["lr"],
-            weight_decay=config["weight_decay"],
-            betas=(0.9, 0.999)
-        )
+        self.optimizer = AdamW(self.model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"], betas=(0.9, 0.999))
 
         if config.get("use_one_cycle", True):
             self.scheduler = OneCycleLR(
@@ -81,16 +54,10 @@ class FusedTrainer:
                 steps_per_epoch=len(self.train_loader),
                 pct_start=0.3,
                 div_factor=25.0,
-                final_div_factor=1e4
+                final_div_factor=1e4,
             )
         else:
-            self.scheduler = ReduceLROnPlateau(
-                self.optimizer,
-                mode="min",
-                patience=5,
-                factor=0.5,
-                min_lr=1e-6
-            )
+            self.scheduler = ReduceLROnPlateau(self.optimizer, mode="min", patience=5, factor=0.5, min_lr=1e-6)
 
         # 4. Mixed Precision
         self.scaler = torch.cuda.amp.GradScaler() if config.get("mixed_precision", True) else None
@@ -148,19 +115,13 @@ class FusedTrainer:
             physics_confidences.append(conf.mean().item())
             physics_contributions.append((conf * self.config["physics_weight"]).mean().item())
 
-            pbar.set_postfix({
-                "loss": f"{batch_loss:.4f}",
-                "conf": f"{conf.mean().item():.3f}"
-            })
+            pbar.set_postfix({"loss": f"{batch_loss:.4f}", "conf": f"{conf.mean().item():.3f}"})
 
         avg_loss = epoch_loss / len(self.train_loader)
         avg_confidence = np.mean(physics_confidences)
         avg_physics_contrib = np.mean(physics_contributions)
 
-        return avg_loss, {
-            "confidence": avg_confidence,
-            "physics_contrib": avg_physics_contrib
-        }
+        return avg_loss, {"confidence": avg_confidence, "physics_contrib": avg_physics_contrib}
 
     def validate(self):
         """검증 실행"""
@@ -195,10 +156,7 @@ class FusedTrainer:
         avg_confidence = np.mean(physics_confidences)
         param_mae = {k: np.mean(v) for k, v in param_errors.items()}
 
-        return avg_loss, {
-            "confidence": avg_confidence,
-            "param_mae": param_mae
-        }
+        return avg_loss, {"confidence": avg_confidence, "param_mae": param_mae}
 
     def train(self):
         """전체 학습 루프"""
@@ -270,7 +228,7 @@ class FusedTrainer:
             "scaler_state_dict": self.scaler.state_dict() if self.scaler else None,
             "val_loss": val_loss,
             "config": self.config,
-            "metrics": metrics
+            "metrics": metrics,
         }
 
         torch.save(checkpoint, self.ckpt_dir / filename)

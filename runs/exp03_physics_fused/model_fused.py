@@ -7,11 +7,8 @@ from physics import PhysicsLayer
 
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('physics_debug.log', mode='w'),
-        logging.StreamHandler(sys.stdout)
-    ]
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("physics_debug.log", mode="w"), logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
 
@@ -22,13 +19,10 @@ class Conv1DEncoder(nn.Module):
         layers = []
         ch = in_channels
         for i in range(n_layers):
-            out_ch = base_channels * (2 ** i) if i < 3 else base_channels * 8
-            layers.extend([
-                nn.Conv1d(ch, out_ch, kernel_size, padding=kernel_size//2),
-                nn.BatchNorm1d(out_ch),
-                nn.ReLU(inplace=True),
-                nn.MaxPool1d(2)
-            ])
+            out_ch = base_channels * (2**i) if i < 3 else base_channels * 8
+            layers.extend(
+                [nn.Conv1d(ch, out_ch, kernel_size, padding=kernel_size // 2), nn.BatchNorm1d(out_ch), nn.ReLU(inplace=True), nn.MaxPool1d(2)]
+            )
             ch = out_ch
         self.net = nn.Sequential(*layers)
         self.out_channels = ch
@@ -40,8 +34,7 @@ class Conv1DEncoder(nn.Module):
 
 
 class FusedPhysicsRegressor(nn.Module):
-    def __init__(self, q_len: int, n_layers: int, q_values: torch.Tensor,
-        physics_weight: float = 0.5, norm_ranges: dict | None = None):
+    def __init__(self, q_len: int, n_layers: int, q_values: torch.Tensor, physics_weight: float = 0.5, norm_ranges: dict | None = None):
         super().__init__()
         self.n_layers = n_layers
         self.physics_weight = physics_weight
@@ -51,18 +44,9 @@ class FusedPhysicsRegressor(nn.Module):
         self.physics_layer = PhysicsLayer(q_values, n_layers, confidence_threshold=0.1)
 
         fusion_dim = self.encoder.out_channels + n_layers
-        self.regressor = nn.Sequential(
-            nn.Linear(fusion_dim, 128),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, n_layers * 3)
-        )
+        self.regressor = nn.Sequential(nn.Linear(fusion_dim, 128), nn.ReLU(), nn.Dropout(0.2), nn.Linear(128, n_layers * 3))
         if norm_ranges is None:
-            norm_ranges = {
-                "thickness": [0.0, 200.0],
-                "roughness" : [0.0, 10.0],
-                "sld" : [0.0, 140.0]
-            }
+            norm_ranges = {"thickness": [0.0, 200.0], "roughness": [0.0, 10.0], "sld": [0.0, 140.0]}
 
         self.register_buffer("th_min", torch.tensor(norm_ranges["thickness"][0]))
         self.register_buffer("th_max", torch.tensor(norm_ranges["thickness"][1]))
@@ -100,7 +84,7 @@ class FusedPhysicsRegressor(nn.Module):
             "validity_mask": validity_mask,
             "nn_raw": torch.stack([th, rg, sld], dim=-1),
             "final": torch.stack([final_th, rg, sld], dim=-1),
-            "confidence": validity_mask.float()
+            "confidence": validity_mask.float(),
         }
 
 
@@ -112,10 +96,7 @@ def fused_loss_with_masking(outputs, targets, physics_weight=0.5):
     validity_mask = outputs["validity_mask"]
 
     if validity_mask.sum() > 0:
-        loss_physics = torch.mean(
-            ((physics_pred - targets[:, :, 0]) ** 2) *
-            validity_mask.unsqueeze(1)
-        )
+        loss_physics = torch.mean(((physics_pred - targets[:, :, 0]) ** 2) * validity_mask.unsqueeze(1))
     else:
         loss_physics = torch.tensor(0.0, device=targets.device)
 

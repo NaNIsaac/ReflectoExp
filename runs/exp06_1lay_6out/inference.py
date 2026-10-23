@@ -35,13 +35,7 @@ class XRRInferenceEngine:
         self.n_points = CONFIG["simulation"]["q_points"]
 
         # 4. Initialize Processor (Handles Preprocessing & Denormalization)
-        self.processor = XRRPreprocessor(
-            q_min=self.q_min,
-            q_max=self.q_max,
-            n_points=self.n_points,
-            stats_file=self.stats_file,
-            device=self.device
-        )
+        self.processor = XRRPreprocessor(q_min=self.q_min, q_max=self.q_max, n_points=self.n_points, stats_file=self.stats_file, device=self.device)
 
         # 5. Load Model
         self._load_model()
@@ -52,17 +46,20 @@ class XRRInferenceEngine:
         ckpt = torch.load(self.checkpoint_file, map_location=self.device)
 
         # Get model configuration (fallback to Config if not present)
-        model_args = ckpt.get('config', {}).get('model_args', {
-            'q_len': self.n_points,
-            'input_channels': 2,  # Fixed: 2 channels (LogR, Mask)
-            'n_channels': CONFIG["model"]["n_channels"],
-            'depth': CONFIG["model"]["depth"],
-            'mlp_hidden': CONFIG["model"]["mlp_hidden"],
-        })
+        model_args = ckpt.get("config", {}).get(
+            "model_args",
+            {
+                "q_len": self.n_points,
+                "input_channels": 2,  # Fixed: 2 channels (LogR, Mask)
+                "n_channels": CONFIG["model"]["n_channels"],
+                "depth": CONFIG["model"]["depth"],
+                "mlp_hidden": CONFIG["model"]["mlp_hidden"],
+            },
+        )
 
         # Initialize and load model
         self.model = XRR1DRegressor(**model_args).to(self.device)
-        self.model.load_state_dict(ckpt['model_state_dict'])
+        self.model.load_state_dict(ckpt["model_state_dict"])
         self.model.eval()
         print(f"[Inference] Model loaded from {self.checkpoint_file}")
 

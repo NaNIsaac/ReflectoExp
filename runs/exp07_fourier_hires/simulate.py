@@ -22,12 +22,7 @@ def generate_1layer_data(qs: np.ndarray, config: dict, h5_file: Path | str):
     output_dir = h5_file.parent
     output_dir.mkdir(exist_ok=True, parents=True)
 
-    simulator_args: dict = {
-        "qs": qs,
-        "n_layers": 1,
-        "n_samples": simulation["n_samples"],
-        "has_noise": False
-    }
+    simulator_args: dict = {"qs": qs, "n_layers": 1, "n_samples": simulation["n_samples"], "has_noise": False}
     # config의 param_ranges 키 -> XRRSimulator 인자명 매핑
     range_keys = {
         "thickness": "thickness_range",
@@ -43,9 +38,7 @@ def generate_1layer_data(qs: np.ndarray, config: dict, h5_file: Path | str):
         if value is not None:
             simulator_args[arg_name] = tuple(value)
 
-    simulator = XRRSimulator(
-        **simulator_args
-    )
+    simulator = XRRSimulator(**simulator_args)
 
     simulator.save_hdf5(h5_file, show_progress=True)
 
@@ -62,8 +55,5 @@ if __name__ == "__main__":
     exp_dir.mkdir(parents=True, exist_ok=True)
 
     h5_file = exp_dir / "dataset.h5"
-    qs: np.ndarray = np.linspace(
-        CONFIG["simulation"]["q_min"],
-        CONFIG["simulation"]["q_max"],
-        CONFIG["simulation"]["q_points"])
+    qs: np.ndarray = np.linspace(CONFIG["simulation"]["q_min"], CONFIG["simulation"]["q_max"], CONFIG["simulation"]["q_points"])
     generate_1layer_data(qs, CONFIG, h5_file)
