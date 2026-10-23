@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -94,7 +93,8 @@ if __name__ == "__main__":
     from config import CONFIG
     from dataset import XRR1LayerDataset
 
-    exp_dir = Path(os.environ["DATA"], r"XRR_AI\data\one_layer\run")
+    # The run main.py trains, not another experiment's folder.
+    exp_dir = CONFIG["base_dir"] / CONFIG["exp_name"]
     h5_file = exp_dir / "dataset.h5"
     stats_file = exp_dir / "stats.pt"
     checkpoint_file = exp_dir / "best.pt"
