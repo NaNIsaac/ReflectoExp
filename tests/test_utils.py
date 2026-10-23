@@ -1,3 +1,4 @@
+import re
 import warnings
 
 import numpy as np
@@ -51,13 +52,13 @@ def test_next_unique_file_numbers_after_the_highest_existing(tmp_path):
     assert next_unique_file(base) == tmp_path / "out(5).txt"
 
 
-def test_append_timestamp_keeps_the_suffix(tmp_path):
+def test_append_timestamp_puts_the_time_before_the_extension(tmp_path):
     with_suffix = append_timestamp(tmp_path / "scan.dat")
-    assert with_suffix.parent == tmp_path and with_suffix.suffix == ".dat"
-    assert with_suffix != tmp_path / "scan.dat"
+    assert with_suffix.parent == tmp_path
+    assert re.fullmatch(r"scan_\d{8}_\d{6}\.dat", with_suffix.name), with_suffix.name
     no_suffix = append_timestamp(tmp_path / "scan")
-    assert no_suffix.parent == tmp_path and no_suffix.suffix == ""
-    assert no_suffix.name.startswith("scan_")
+    assert no_suffix.parent == tmp_path
+    assert re.fullmatch(r"scan_\d{8}_\d{6}", no_suffix.name), no_suffix.name
 
 
 def test_load_xrr_dat_skips_comments_reads_scientific_notation_and_zeros_garbage(tmp_path):

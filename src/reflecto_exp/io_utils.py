@@ -12,7 +12,7 @@ def append_timestamp(path: Path | str) -> Path:
     The exact naming format is not fixed.
     """
     path = Path(path)
-    new_name = f"{path.name}_{datetime.now():%Y%m%d_%H%M%S}"
+    new_name = f"{path.stem}_{datetime.now():%Y%m%d_%H%M%S}"
 
     if path.suffix:
         return path.parent / (new_name + path.suffix)
