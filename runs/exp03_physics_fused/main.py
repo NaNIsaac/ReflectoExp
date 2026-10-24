@@ -22,7 +22,6 @@ def main():
         "save_every": 5,
         "physics_weight": 0.5,
         "patience": 10,
-        # 하드웨어
         "device": "cuda" if torch.cuda.is_available() else "cpu",
         "mixed_precision": True,
         "num_workers": 4,

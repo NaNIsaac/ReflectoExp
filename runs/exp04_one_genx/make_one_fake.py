@@ -20,7 +20,6 @@ def generate_dummy_xrr(qs, param: ParamSet):
 if __name__ == "__main__":
     from pathlib import Path
 
-    # q-space 생성 (당신 config와 동일)
     wavelen: float = 1.54  # (nm)
     tth_min: float = 1.0  # degree
     tth_max: float = 6.0

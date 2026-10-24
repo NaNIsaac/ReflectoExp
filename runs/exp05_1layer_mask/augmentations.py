@@ -32,12 +32,11 @@ class XRRAugmentations:
         if np.random.rand() > self.prob:
             return q, R
 
-        # 1. Intensity Scaling (Global scaling error)
-        # Simulates errors in I0 normalization
+        # global intensity scaling error (I0 normalization error)
         scale_factor = np.random.uniform(1.0 - self.intensity_scale, 1.0 + self.intensity_scale)
         R_aug = R * scale_factor
 
-        # 2. Q-Shifting (Alignment error)
+        # q alignment error
         shift = np.random.normal(0, self.q_shift_sigma)
         q_shifted = q + shift
         R_aug = np.interp(q, q_shifted, R_aug, left=R_aug[0], right=R_aug[-1])

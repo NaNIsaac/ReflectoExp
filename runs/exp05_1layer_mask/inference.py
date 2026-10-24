@@ -7,7 +7,7 @@ from config import CONFIG
 from dataset import XRRPreprocessor
 from xrr_model import XRR1DRegressor
 
-from reflecto_exp.math_utils import powerspace  # [필수] powerspace 임포트
+from reflecto_exp.math_utils import powerspace
 
 
 class XRRInferenceEngine:
@@ -15,7 +15,6 @@ class XRRInferenceEngine:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"[Inference] Device: {self.device}")
 
-        # 1. 경로 설정
         if exp_dir is None:
             exp_dir = Path(CONFIG["base_dir"]) / CONFIG["exp_name"]
         else:
@@ -33,7 +32,7 @@ class XRRInferenceEngine:
             print("[Inference] Warning: config.json not found. Fallback to current global CONFIG.")
             self.train_config = CONFIG
 
-        # 2. Master Grid 설정 (학습 때와 동일해야 함!)
+        # must match the training grid
         sim_conf = self.train_config["simulation"]
         q_min = sim_conf["q_min"]
         q_max = sim_conf["q_max"]
@@ -42,15 +41,11 @@ class XRRInferenceEngine:
 
         print(f"[Inference] Grid Generation: Power={power}, Points={n_points}")
 
-        # 모델이 바라보는 세상(Grid)을 학습 때와 똑같이 만듭니다.
         self.target_qs = powerspace(q_min, q_max, n_points, power=power).astype(np.float32)
 
-        # 3. 전처리기 초기화
-        # 여기서 target_qs를 넘겨주면, process_input에서
-        # 들어오는 모든 데이터(등간격)를 이 target_qs(비선형)에 맞춰 내삽합니다.
+        # process_input interpolates the incoming evenly spaced data onto target_qs (a nonlinear grid)
         self.processor = XRRPreprocessor(qs=self.target_qs, stats_file=self.stats_file, device=self.device)
 
-        # 4. 모델 로드
         self._load_model()
 
     def _load_model(self):
@@ -75,19 +70,15 @@ class XRRInferenceEngine:
 
     def predict(self, q_raw, R_raw):
         """
-        q_raw: 실측 데이터의 q (등간격이어도 상관없음)
-        R_raw: 실측 데이터의 R
+        q_raw: q of the measured data (need not be evenly spaced)
+        R_raw: measured R
         """
-        # 1. 전처리 (Resampling)
-        # 내부적으로 np.interp(self.target_qs, q_raw, R_raw)가 실행됩니다.
-        # 즉, 등간격 데이터를 모델이 아는 Powerspace 간격으로 변환합니다.
+        # np.interp resamples evenly spaced data onto the model's powerspace grid
         x = self.processor.process_input(q_raw, R_raw).unsqueeze(0).to(self.device)
 
-        # 2. 추론
         with torch.no_grad():
             y_pred_norm = self.model(x).squeeze(0)
 
-        # 3. 역정규화
         y_pred = self.processor.denormalize_params(y_pred_norm)
 
         return y_pred

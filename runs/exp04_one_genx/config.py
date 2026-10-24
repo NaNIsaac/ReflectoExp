@@ -6,7 +6,6 @@ from pathlib import Path
 # _thickness_range = (_mean_thickness * 0.8, _mean_thickness * 1.2)
 # _sld_range = (_mean_sld * 0.8, _mean_sld * 1.2)
 
-# ==================== 설정 (하나의 파일에서 모두 관리) ====================
 CONFIG = {
     "exp_name": "test",
     "base_dir": Path(r"D:\data\XRR_AI\mask"),

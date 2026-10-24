@@ -25,7 +25,6 @@ class GenXFitter:
         self.q = q
         self.R = R / R.max()
 
-        # 1. 입력값 정리 (Human Readable Scale로 통일)
         self.init_d = float(film_params.thickness)
         self.init_sigma = float(film_params.roughness)
         self.init_sld = float(film_params.sld)
@@ -35,7 +34,6 @@ class GenXFitter:
         self.model = self._build_model()
 
     def _build_model(self):
-        # --- Data Load ---
         ds = DataSet(name="XRR_Data")
         ds.x_raw = self.q
         ds.y_raw = self.R
@@ -45,7 +43,6 @@ class GenXFitter:
         model = Model()
         model.data = DataList([ds])
 
-        # --- Script Generation ---
         script = rf"""
 import numpy as np
 from genx.models.spec_nx import Sample, Stack, Layer, Instrument, Specular
@@ -137,8 +134,7 @@ def Sim(data):
         pars = Parameters()
         model = self.model
 
-        # --- Parameters Registration ---
-        # 1. Film (NN Prediction based)
+        # film thickness is bounded around the NN prediction
         p_f_d = pars.append("v.set_f_d", model)
         p_f_d.min = max(1.0, self.init_d * 0.5)
         p_f_d.max = self.init_d * 1.5
@@ -151,7 +147,6 @@ def Sim(data):
         p_f_sld.min = 0.1
         p_f_sld.max = 50.0
 
-        # 2. SiO2
         p_s_d = pars.append("v.set_s_d", model)
         p_s_d.value = 15.0
         p_s_d.min = 5.0
@@ -167,7 +162,6 @@ def Sim(data):
         p_s_sld.min = 10.0
         p_s_sld.max = 23.0
 
-        # 3. Instrument
         p_i0 = pars.append("v.set_i0", model)
         p_i0.value = 1.0
         p_i0.min = 0.1
@@ -175,7 +169,6 @@ def Sim(data):
 
         model.parameters = pars
 
-        # --- Step 1: I0 Fitting ---
         if verbose:
             print("\n[GenX] Step 1: Fitting I0 (Linear)...")
         model.set_fom_func(fom_funcs.diff)
@@ -194,7 +187,6 @@ def Sim(data):
         if verbose:
             print(f"  -> I0 Fitted: {p_i0.value:.4f}")
 
-        # --- Step 2: Full Fitting ---
         if verbose:
             print("[GenX] Step 2: Fitting All Params (Log)...")
         model.set_fom_func(fom_funcs.log)

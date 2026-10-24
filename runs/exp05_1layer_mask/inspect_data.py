@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-# 모듈 경로 설정
 current_dir = Path(__file__).parent
 sys.path.append(str(current_dir))
 
@@ -43,7 +42,6 @@ def inspect_statistics(stats_file):
 def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
     print(f"\n=== [2] Preprocessing Check (Sample {sample_idx}) ===")
 
-    # 1. Load Raw Data
     with h5py.File(h5_file, "r") as hf:
         q_raw = hf["q"][:]
         R_raw = hf["R"][sample_idx]
@@ -54,16 +52,12 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
         sld = hf["sld"][sample_idx]
         print(f"Target Params: d={d}, sig={sig}, sld={sld}")
 
-    # 2. Setup Preprocessor
-    # Config에서 설정 가져오기
     sim_conf = CONFIG["simulation"]
 
-    # Power Grid 생성 (학습 때와 동일해야 함)
+    # must match the training grid
     target_qs = powerspace(sim_conf["q_min"], sim_conf["q_max"], sim_conf["q_points"], power=sim_conf["power"]).astype(np.float32)
 
     processor = XRRPreprocessor(qs=target_qs, stats_file=stats_file)
-
-    # 3. Step-by-Step Preprocessing & Visualization
 
     # Step A: Log & Normalize (Max=1)
     R_max = np.max(R_raw)
@@ -72,7 +66,7 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
 
     # Step B: Interpolation (Linear q -> Power q)
     # Padding Check: -15.0 vs 0.0
-    padding_val = -15.0  # 우리가 원하는 바닥값
+    padding_val = -15.0  # floor value for padded points
     _R_interp = np.interp(target_qs, q_raw, R_log, left=padding_val, right=padding_val)
 
     # Step C: Masking
@@ -83,7 +77,6 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
     model_input_R = input_tensor[0].numpy()
     model_input_M = input_tensor[1].numpy()
 
-    # --- Visualization ---
     plt.figure(figsize=(15, 10))
 
     # Plot 1: Raw Linear Data
@@ -107,7 +100,6 @@ def inspect_preprocessing(h5_file, stats_file, sample_idx=0):
     plt.grid(True, alpha=0.3)
 
     # Check for "The Cliff" (Zero Padding Issue)
-    # 마스크가 0인 구간(데이터 밖)의 값이 -15 근처인지, 0인지 확인
     out_of_range_indices = np.where(model_input_M == 0)[0]
     if len(out_of_range_indices) > 0:
         bg_val = np.mean(model_input_R[out_of_range_indices])

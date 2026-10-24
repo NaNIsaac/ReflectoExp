@@ -36,9 +36,7 @@ class XRR1DRegressor(nn.Module):
             "dropout": dropout,
         }
 
-        # ---------------------------------------------------------
         # 1D CNN Encoder
-        # ---------------------------------------------------------
         layers = []
         in_ch = input_channels
 
@@ -61,9 +59,7 @@ class XRR1DRegressor(nn.Module):
         # Summarizes features across the entire q-range
         self.global_pool = nn.AdaptiveAvgPool1d(1)
 
-        # ---------------------------------------------------------
         # MLP Regressor
-        # ---------------------------------------------------------
         encoder_out_dim = in_ch  # The channel count of the last conv layer
         self.regressor = nn.Sequential(
             nn.Linear(encoder_out_dim, mlp_hidden),
@@ -71,7 +67,7 @@ class XRR1DRegressor(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(mlp_hidden, mlp_hidden // 2),
             nn.ReLU(inplace=True),
-            nn.Linear(mlp_hidden // 2, output_dim),  # 출력: Thickness, Roughness, SLD
+            nn.Linear(mlp_hidden // 2, output_dim),  # thickness, roughness, SLD
         )
 
         self._init_weights()
@@ -97,11 +93,8 @@ class XRR1DRegressor(nn.Module):
         Returns:
             Predicted normalized parameters of shape (Batch, output_dim).
         """
-        # 1. Extract Features
         features = self.encoder(x)  # Output: (B, Last_Ch, Reduced_Len)
 
-        # 2. Global Pooling
         pooled = self.global_pool(features).squeeze(-1)  # Output: (B, Last_Ch)
 
-        # 3. Regression
         return self.regressor(pooled)

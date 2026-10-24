@@ -34,7 +34,6 @@ class XRR1DRegressor(nn.Module):
         # Global pooling
         self.global_pool = nn.AdaptiveAvgPool1d(1)
 
-        # MLP 회귀기
         encoder_out_dim = in_ch  # Should be 512 for depth=4
         self.regressor = nn.Sequential(
             nn.Linear(encoder_out_dim, mlp_hidden),
@@ -42,13 +41,12 @@ class XRR1DRegressor(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(mlp_hidden, mlp_hidden // 2),
             nn.ReLU(inplace=True),
-            nn.Linear(mlp_hidden // 2, 3),  # 3개 파라미터 출력
+            nn.Linear(mlp_hidden // 2, 3),
         )
 
         self._init_weights()
 
     def _init_weights(self):
-        """He 초기화"""
         for m in self.modules():
             if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
                 nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
@@ -57,7 +55,7 @@ class XRR1DRegressor(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.dim() == 2:
-            x = x.unsqueeze(1)  # 채널 차원 추가
+            x = x.unsqueeze(1)
 
         features = self.encoder(x)  # (B, ch, seq_len')
         pooled = self.global_pool(features).squeeze(-1)  # (B, ch)

@@ -6,10 +6,8 @@ from dataset import XRR1LayerDataset
 from evaluate import load_checkpoint_and_evaluate
 from torch.utils.data import DataLoader
 
-# 재현성 보장
 torch.manual_seed(42)
 np.random.seed(42)
-# =========================================================================
 
 
 def main():
@@ -39,7 +37,6 @@ def main():
 
     print(f"데이터셋: Train={len(train_set)}, Val={len(val_set)}, Test={len(test_set)}")
 
-    # 모델 생성
     from model import XRR1DRegressor
 
     model = XRR1DRegressor(
@@ -52,7 +49,6 @@ def main():
 
     print(f"모델 파라미터: {sum(p.numel() for p in model.parameters()):,}")
 
-    # 학습
     from train import Trainer
 
     trainer = Trainer(
@@ -64,10 +60,8 @@ def main():
         weight_decay=CONFIG["training"]["weight_decay"],
     )
 
-    # 학습 시작 (체크포인트 있으면 자동 로드)
     trainer.train(CONFIG["training"]["epochs"])
 
-    # 최종 평가
     print("\n" + "=" * 50)
     print("최종 테스트 평가")
     print("=" * 50)

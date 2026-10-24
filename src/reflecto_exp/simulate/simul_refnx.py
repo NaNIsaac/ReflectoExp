@@ -22,7 +22,7 @@ class ParamSet:
         return np.array([self.thickness, self.roughness, self.sld], dtype=np.float64)
 
     def __format__(self, format_spec: str) -> str:
-        """클래스 전체에 포매팅 명령어 적용 (.3f, .2f 등)"""
+        """Apply a format spec (.3f, .2f, ...) to the whole class."""
         formatted = [f"{name}={getattr(self, name):{format_spec}}" for name in self.__dataclass_fields__.keys()]
         return f"{self.__class__.__name__}({', '.join(formatted)})"
 
@@ -42,7 +42,6 @@ def tth2q[T: (float, np.ndarray)](tth: T, wavelen: float = 1.54) -> T:
 
 
 def build_structure(params: list[ParamSet]) -> Structure:
-    """refnx Structure를 연속 파라미터로부터 생성."""
     air = SLD(0.0, name="Air")
     substrate = SLD(20, name="Substrate")
 
@@ -73,7 +72,6 @@ def calc_refl(structure: Structure, q: np.ndarray, wavelen: float = 1.54, is_foo
     np.ndarray
         Reflectivity values corrected for beam footprint.
     """
-    # 1. 기본 ReflectModel 계산
     model = ReflectModel(structure)
     R = model(q)
     if is_footprint:
@@ -104,7 +102,7 @@ class XRRSimulator:
         self.n_samples = n_samples
 
         self.thick_range = thickness_range  # Å
-        self.rough_range = roughness_range  # Å, 주로 0-10Å 세밀
+        self.rough_range = roughness_range  # A, mostly fine steps within 0-10 A
         self.sld_range = sld_range  # x1e-6 Å^-2
         self.max_total_thickness = max_total_thickness
 
@@ -112,25 +110,24 @@ class XRRSimulator:
         self.has_footprint = has_footprint
 
     def sample_thicknesses_divide_and_conquer(self) -> np.ndarray:
-        """Dirichlet 분포를 사용하여 균일한 두께 샘플링"""
+        """Sample thicknesses uniformly using a Dirichlet distribution."""
         min_total = self.n_layers * self.thick_range[0]
         total_thickness = np.random.uniform(min_total, self.max_total_thickness)
 
         proportions = np.random.dirichlet(np.ones(self.n_layers))
         thicknesses = total_thickness * proportions
 
-        # 안전장치: 범위를 벗어나는 경우 클리핑
         thicknesses = np.clip(thicknesses, *self.thick_range)
 
         return thicknesses
 
     def make_params_refl(self) -> Iterator[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
-        """제약 조건을 만족하는 파라미터 생성 (Rejection-Free)"""
+        """Generate parameters that satisfy the constraints (rejection-free)."""
         for _ in range(0, self.n_samples):
-            # 총 두께 제한을 자동으로 만족하는 두께 샘플링
+            # thickness sampling that satisfies the total thickness limit by construction
             thicknesses = self.sample_thicknesses_divide_and_conquer()
 
-            # 거칠기 제약: 단일 층 두께의 3% 이하
+            # roughness constraint: at most 3% of a single layer thickness
             rough_min, rough_max = self.rough_range
             max_roughness_per_layer = np.minimum(thicknesses * 0.03, rough_max)
             roughnesses = np.random.uniform(rough_min, max_roughness_per_layer, self.n_layers)

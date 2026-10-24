@@ -19,7 +19,6 @@ class XRRPreprocessor:
             self.load_stats(stats_file)
 
     def load_stats(self, stats_file):
-        # [Fix] stats.pt 파일을 로드하여 정규화 파라미터 확보
         stats = torch.load(stats_file, map_location=self.device, weights_only=True)
         self.param_mean = stats["param_mean"]
         self.param_std = stats["param_std"]
@@ -45,7 +44,6 @@ class XRRPreprocessor:
         return torch.stack([torch.from_numpy(R_interp.astype(np.float32)), torch.from_numpy(q_valid_mask.astype(np.float32))], dim=0)
 
     def normalize_parameters(self, params_real):
-        # [Fix] 텐서 연산을 위해 mean/std 타입 체크
         mean = self.param_mean.numpy() if torch.is_tensor(self.param_mean) else self.param_mean
         std = self.param_std.numpy() if torch.is_tensor(self.param_std) else self.param_std
         params_norm = (params_real - mean) / std
@@ -74,7 +72,7 @@ class XRR1LayerDataset(Dataset):
         self.stats_path = Path(stats_file)
         self.mode = mode
         self.target_q = qs
-        # augment_eval=True면 val/test에도 측정 노이즈를 적용해 평가 (expand는 train만)
+        # with augment_eval=True, val/test get measurement noise too (expand_factor applies to train only)
         self.augment = augment and (mode == "train" or augment_eval)
         self.expand_factor = expand_factor if (mode == "train") else 1
         self.aug_prob = aug_prob
@@ -83,8 +81,8 @@ class XRR1LayerDataset(Dataset):
         self._setup_split(val_ratio, test_ratio)
 
         if self.augment:
-            # Augmentation은 h5의 원본 q 그리드 위에서 수행되므로 smearing 커널의
-            # 픽셀 환산에는 target_q가 아닌 source_q의 간격을 써야 한다.
+            # augmentation runs on the source q grid of the h5, so the smearing kernel is converted to pixels
+            # with the spacing of source_q, not target_q.
             src_q = self.source_q[0] if self.source_q.ndim == 2 else self.source_q
             self.physics_augmenter = XRRAugmentations(
                 intensity_noise_scale=intensity_scale,
@@ -96,7 +94,6 @@ class XRR1LayerDataset(Dataset):
 
         self.processor = XRRPreprocessor(self.target_q)
 
-        # [Fix] 학습 모드일 때 통계량이 없으면 자동 계산
         if mode == "train" and not self.stats_path.exists():
             self._calculate_and_save_stats()
 
@@ -116,14 +113,13 @@ class XRR1LayerDataset(Dataset):
             self.sld = hf["sld"][:].squeeze()
 
     def _calculate_and_save_stats(self):
-        """[핵심 추가] 학습 데이터셋으로부터 정규화용 통계량(Mean/Std) 계산 및 저장"""
         print(f"[{self.mode}] Calculating normalization statistics from training subset...")
-        idx = range(self.train_end)  # 학습용 인덱스만 사용
+        idx = range(self.train_end)
 
         params = np.stack([self.thickness[idx], self.roughness[idx], self.sld[idx]], axis=1)
 
         mean = np.mean(params, axis=0)
-        std = np.std(params, axis=0) + 1e-8  # 0으로 나누기 방지
+        std = np.std(params, axis=0) + 1e-8  # avoid division by zero
 
         torch.save({"param_mean": torch.from_numpy(mean.astype(np.float32)), "param_std": torch.from_numpy(std.astype(np.float32))}, self.stats_path)
         print(f"   >> Statistics saved to: {self.stats_path}")

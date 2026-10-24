@@ -96,7 +96,6 @@ def main():
     checkpoint_file = exp_dir / "best.pt"
     last_checkpoint_file = exp_dir / "last.pt"
 
-    # [제거됨] evaluate.py가 내부적으로 경로를 생성하므로 여기서 정의할 필요 없음
     # report_file_img = exp_dir / "error_distribution.png"
     # report_file_csv = exp_dir / "evaluation_results.csv"
     # report_history_img = exp_dir / "training_history.png"

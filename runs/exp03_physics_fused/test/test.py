@@ -17,50 +17,40 @@ class PhysicsValidator:
     def __init__(self, h5_path: str | Path, norm_ranges: dict = None, device: str = "cuda"):
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
 
-        # 데이터셋 로드 (train/val 모두)
         self.dataset = FusedDatasetH5(
             h5_path,
-            mode="val",  # 검증셋으로 테스트
+            mode="val",
             val_ratio=0.2,
             norm_ranges=norm_ranges,
         )
 
-        # q_values 추출
         with h5py.File(h5_path, "r") as f:
             self.q_values = torch.tensor(f["q"][:], dtype=torch.float32)
 
-        # PhysicsLayer 초기화
         self.physics_layer = PhysicsLayer(q_values=self.q_values, n_layers=self.dataset[0]["targets"].shape[0], confidence_threshold=0.1).to(
             self.device
         )
 
-        # 역정규화를 위한 범위
         self.norm_ranges = norm_ranges or {"thickness": [0.0, 200.0], "roughness": [0.0, 10.0], "sld": [0.0, 140.0]}
 
     def denormalize_thickness(self, thickness_norm: np.ndarray) -> np.ndarray:
-        """정규화된 두께를 원래 스케일로 복원"""
         min_val, max_val = self.norm_ranges["thickness"]
         return (thickness_norm + 1) / 2 * (max_val - min_val) + min_val
 
     def validate_sample(self, idx: int, plot: bool = False, save_path: str = None):
-        """단일 샘플에 대해 physics layer 검증"""
         sample = self.dataset[idx]
 
-        # 실제 값
         real_targets = sample["targets"]  # (n_layers, 3)
         real_thickness = self.denormalize_thickness(real_targets[:, 0].numpy())
 
-        # physics layer 추정
         reflectivity = sample["reflectivity"].unsqueeze(0).to(self.device)  # (1, Q)
 
         with torch.no_grad():
             physics_output, validity_mask = self.physics_layer(reflectivity)
 
-        # 역정규화
-        est_thickness = physics_output[0].cpu().numpy()  # physics layer는 이미 실제 스케일
+        est_thickness = physics_output[0].cpu().numpy()  # physics layer output is already in physical units
         confidence = validity_mask[0].item()
 
-        # 오차 계산
         mae = np.mean(np.abs(est_thickness[: len(real_thickness)] - real_thickness))
 
         results = {
@@ -72,14 +62,12 @@ class PhysicsValidator:
             "is_valid": confidence > 0.1,
         }
 
-        # 시각화
         if plot:
             self.plot_physics_process(sample, physics_output.cpu(), validity_mask.cpu(), save_path=save_path)
 
         return results
 
     def validate_batch(self, n_samples: int = 100):
-        """배치 단위로 검증 (통계 계산)"""
         indices = np.random.choice(len(self.dataset), min(n_samples, len(self.dataset)), replace=False)
 
         all_mae = []
@@ -94,7 +82,6 @@ class PhysicsValidator:
             confidences.append(result["confidence"])
             success_rates.append(result["is_valid"])
 
-        # 통계 계산
         valid_mae = [mae for mae, valid in zip(all_mae, success_rates, strict=True) if valid]
         invalid_mae = [mae for mae, valid in zip(all_mae, success_rates, strict=True) if not valid]
 
@@ -112,14 +99,12 @@ class PhysicsValidator:
         return stats, indices, all_mae
 
     def plot_physics_process(self, sample, physics_output, validity_mask, save_path: str = None):
-        """Physics layer의 중간 과정 시각화"""
         fig, axes = plt.subplots(3, 1, figsize=(12, 10))
 
         q_np = self.q_values.numpy()
         R_log_np = sample["reflectivity"].numpy()
         R_original = 10**R_log_np
 
-        # 1. 원본 반사율
         axes[0].plot(q_np, R_original, "b-", label="Reflectivity (R)")
         axes[0].set_xlabel("q")
         axes[0].set_ylabel("R")
@@ -127,7 +112,6 @@ class PhysicsValidator:
         axes[0].legend()
         axes[0].set_yscale("log")
 
-        # 2. FFT 결과 및 피크 검출
         R_smooth = signal.savgol_filter(R_log_np, window_length=min(len(R_log_np), 51), polyorder=4, mode="interp")
         R_savgol = R_original / (10**R_smooth)
         R_savgol = R_savgol / (R_savgol[0] + 1e-12) * R_original.max()
@@ -141,7 +125,6 @@ class PhysicsValidator:
 
         axes[1].plot(x_fft, yf, "g-", label="FFT")
 
-        # 피크 강조
         from scipy.signal import argrelmax
 
         upper_idx = np.searchsorted(x_fft, 200.0)
@@ -156,7 +139,6 @@ class PhysicsValidator:
         axes[1].set_title("FFT Analysis & Peak Detection")
         axes[1].legend()
 
-        # 3. 두께 비교
         real_thickness = self.denormalize_thickness(sample["targets"][:, 0].numpy())
         est_thickness = physics_output[0].cpu().numpy()
 
@@ -171,7 +153,6 @@ class PhysicsValidator:
         axes[2].set_title(f"Thickness Comparison (Confidence: {validity_mask[0].item():.3f})")
         axes[2].legend()
 
-        # MAE 표시
         mae = np.mean(np.abs(est_thickness[: len(real_thickness)] - real_thickness))
         axes[2].text(
             0.02,
@@ -191,7 +172,6 @@ class PhysicsValidator:
             plt.show()
 
     def print_summary(self, stats: dict):
-        """검증 결과 요약 출력"""
         print("\n" + "=" * 60)
         print("📊 Physics Layer Validation Summary")
         print("=" * 60)
@@ -207,10 +187,8 @@ class PhysicsValidator:
         print("=" * 60)
 
     def plot_error_distribution(self, indices, mae_list, save_path: str | Path = None):
-        """오차 분포 시각화"""
         fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-        # 1. MAE 히스토그램
         axes[0].hist(mae_list, bins=20, edgecolor="black", alpha=0.7)
         axes[0].set_xlabel("MAE (Å)")
         axes[0].set_ylabel("Frequency")
@@ -218,7 +196,6 @@ class PhysicsValidator:
         axes[0].axvline(np.mean(mae_list), color="r", linestyle="--", label=f"Mean: {np.mean(mae_list):.2f}")
         axes[0].legend()
 
-        # 2. Confidence vs MAE 산점도
         confidences = []
         for idx in indices:
             sample = self.dataset[idx]
@@ -248,21 +225,16 @@ def main():
     h5_path = Path(r"D:\data\XRR_AI\xrr_data.h5")
     plot_dir = Path(".")
     plot_samples = 10
-    # 검증기 초기화
     validator = PhysicsValidator(h5_path=h5_path, norm_ranges={"thickness": [0.0, 200.0], "roughness": [0.0, 10.0], "sld": [0.0, 140.0]})
 
-    # 결과 저장 디렉토리
     plot_dir = Path(plot_dir)
     plot_dir.mkdir(exist_ok=True)
 
-    # 배치 검증
     stats, indices, mae_list = validator.validate_batch(n_samples)
     validator.print_summary(stats)
 
-    # 오차 분포 플롯
     validator.plot_error_distribution(indices, mae_list, save_path=plot_dir / "error_distribution.png")
 
-    # 샘플별 상세 플롯
     print(f"\nPlotting {plot_samples} sample details...")
     plot_indices = np.random.choice(indices, plot_samples, replace=False)
 

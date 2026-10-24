@@ -42,7 +42,7 @@ class Trainer:
         self.criterion = nn.MSELoss()
 
         # Scheduler: Reduce Learning Rate when validation loss plateaus
-        # Note: 'verbose' argument is deprecated in newer PyTorch versions, removed here.
+        # the scheduler's 'verbose' argument is deprecated in newer PyTorch versions, so it is omitted
         self.scheduler = ReduceLROnPlateau(self.optimizer, mode="min", patience=5, factor=0.5)
 
         # Training State

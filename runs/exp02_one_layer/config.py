@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-# ==================== 설정 (하나의 파일에서 모두 관리) ====================
 CONFIG = {
     "exp_name": "footprint2",
     "base_dir": Path(os.environ["DATA"], r"XRR_AI\data\one_layer"),

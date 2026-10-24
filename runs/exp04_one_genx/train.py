@@ -63,10 +63,9 @@ class Trainer:
         return total_loss / len(self.val_loader.dataset)
 
     def train(self, epochs: int, resume_from: str | Path | None = None):
-        """학습 시작 (이어서 학습 지원)"""
+        """Train, resuming from a checkpoint when one exists."""
         start_epoch = 1
 
-        # 체크포인트 로드 시도 (resume_from 우선, 없으면 best.pt 시도)
         checkpoint_path = Path(resume_from) if resume_from else self.checkpoint_dir / "best.pt"
 
         if checkpoint_path.exists():
@@ -90,7 +89,6 @@ class Trainer:
 
             self.scheduler.step(val_loss)
 
-            # 체크포인트 저장
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
                 self.patience_counter = 0
@@ -105,7 +103,6 @@ class Trainer:
                 break
 
     def save_checkpoint(self, filename: str, epoch: int, val_loss: float):
-        """체크포인트 저장 (학습 상태 포함)"""
         torch.save(
             {
                 "epoch": epoch,
@@ -123,17 +120,14 @@ class Trainer:
         print(f"Saved checkpoint: {self.checkpoint_dir / filename}")
 
     def load_checkpoint(self, filepath: str | Path) -> int:
-        """체크포인트 로드 (에포크 번호 반환)"""
+        """Load a checkpoint and return its epoch number."""
         checkpoint = torch.load(filepath, map_location=self.device)
 
-        # 모델 상태 로드
         self.model.load_state_dict(checkpoint["model_state_dict"])
 
-        # 옵티마이저 상태 로드 (없으면 스킵)
         if "optimizer_state_dict" in checkpoint:
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
-        # 스케줄러 상태 로드 (없으면 스킵)
         if "scheduler_state_dict" in checkpoint:
             self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 

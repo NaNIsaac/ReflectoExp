@@ -88,7 +88,6 @@ def save_results_plot(df: pd.DataFrame, param_names: list[str], save_path: Path)
         y_pred = df[col_pred].values
         err_data = df[col_err].values
 
-        # 1. Scatter Plot
         ax_scatter = axes[0, i]
         min_val = min(np.min(y_true), np.min(y_pred))
         max_val = max(np.max(y_true), np.max(y_pred))
@@ -102,7 +101,6 @@ def save_results_plot(df: pd.DataFrame, param_names: list[str], save_path: Path)
         ax_scatter.legend()
         ax_scatter.grid(True, alpha=0.3)
 
-        # 2. Error Histogram
         ax_hist = axes[1, i]
         mu = np.mean(err_data)
         sigma = np.std(err_data)
@@ -134,7 +132,6 @@ def save_history_plot(history: dict, save_path: Path) -> None:
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
-    # 1. Loss Curve
     ax1.plot(epochs, history["train"], label="Train Loss", color="blue", linewidth=2)
     ax1.plot(epochs, history["val"], label="Val Loss", color="orange", linewidth=2)
     ax1.set_xlabel("Epochs")
@@ -143,7 +140,6 @@ def save_history_plot(history: dict, save_path: Path) -> None:
     ax1.legend()
     ax1.grid(True, alpha=0.3)
 
-    # 2. Learning Rate Curve
     if "lr" in history and len(history["lr"]) > 0:
         ax2.plot(epochs, history["lr"], label="Learning Rate", color="green", linestyle="--")
         ax2.set_xlabel("Epochs")
@@ -210,12 +206,10 @@ def evaluate_pipeline(
     Orchestrates the full evaluation process:
     Load -> Inference -> Denormalize -> Calculate -> Save.
     """
-    # 1. Validation
     if not checkpoint_path.exists() or not stats_path.exists():
         print(f"Error: Missing checkpoint ({checkpoint_path}) or stats file ({stats_path}).")
         return
 
-    # 2. Setup Resources
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load Statistics
@@ -233,10 +227,8 @@ def evaluate_pipeline(
     model.load_state_dict(ckpt["model_state_dict"])
     print(f"Model loaded: {checkpoint_path.name}")
 
-    # 3. Inference (Normalized)
     preds_norm, targets_norm = run_inference(model, test_loader, device)
 
-    # 4. Denormalization
     # Formula: X_real = X_norm * Std + Mean
     preds_real = preds_norm * param_std + param_mean
     targets_real = targets_norm * param_std + param_mean
@@ -245,7 +237,6 @@ def evaluate_pipeline(
     preds_np = preds_real.numpy()
     targets_np = targets_real.numpy()
 
-    # 5. Metrics & Data Construction
     metrics = calculate_metrics(preds_np, targets_np)
 
     # Define parameter names (ensure this matches model output dimension)
@@ -254,7 +245,6 @@ def evaluate_pipeline(
     # Create Master DataFrame
     results_df = generate_results_df(preds_np, targets_np, metrics["errors"], param_names)
 
-    # 6. Output & Reporting
     print_metrics_table(metrics, param_names)
 
     if report_csv_path:

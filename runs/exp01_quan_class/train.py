@@ -92,7 +92,6 @@ class XRRTrainer:
                 total_loss += loss.item()
                 last_parts = {"th": loss_th.item(), "rg": loss_rg.item(), "sld": loss_sld.item()}
 
-                # tqdm에 실시간 표시
                 pbar.set_postfix({**last_parts, "loss": f"{loss.item():.4f}"})
 
             avg_train_loss = total_loss / len(self.train_loader)
