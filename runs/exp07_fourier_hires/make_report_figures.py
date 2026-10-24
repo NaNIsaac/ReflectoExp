@@ -1,12 +1,13 @@
 """
-발표/보고서용 그림 뽑기 (OriginLab 스타일).
+Figures for talks and reports (OriginLab style).
 
-각 모델의 성능 그림을 독립적으로 만든다. variant 간 비교 그림은 plot_ablation.py 쪽.
+Each model's performance figures are made independently; comparison figures between variants
+are in plot_ablation.py.
 
-추론을 다시 돌리지 않는다 - ablation 평가가 남긴 evaluation_results_*.csv에
-True/Pred/Error가 이미 들어 있으므로 그림만 다시 그린다. 학습곡선만 best.pt에서 읽는다.
+Inference is not rerun: evaluation_results_*.csv left by the ablation evaluation already holds
+True/Pred/Error, so only the figures are redrawn. Only the training curves are read from best.pt.
 
-사용:
+Usage:
     python runs/exp07_fourier_hires/make_report_figures.py
     python runs/exp07_fourier_hires/make_report_figures.py --only exp07 exp02
 """
@@ -31,9 +32,9 @@ from origin_style import INK, ORIGIN_COLORS, apply_origin_style, style_axes
 
 apply_origin_style()
 
-# 출력 이름 -> ablation variant 폴더
-# exp02는 원본 데이터가 소실되어 재현 불가하므로 동등 조건 variant로 대체한다
-# (q 200점, Fourier 없음, augmentation 없음).
+# output name -> ablation variant folder.
+# exp02's source data is lost and cannot be reproduced, so an equivalent variant stands in
+# (200 q points, no Fourier, no augmentation).
 LABELS: dict[str, str] = {
     "current": "A_full",
     "previous": "E_exp02_like",
@@ -42,8 +43,8 @@ LABELS: dict[str, str] = {
     "current_lowres": "D_lowres_200",
 }
 
-# 그림 안에 찍히는 이름. 발표는 이전 모델 / 현재 모델 대비로 구성하므로
-# 실험 번호 대신 Previous / Current로 표기한다.
+# names printed in the figures. The talk compares the previous and the current model,
+# so Previous / Current is used instead of experiment numbers.
 DISPLAY: dict[str, str] = {
     "current": "Current",
     "previous": "Previous",
@@ -56,7 +57,7 @@ DOMAIN_TITLE = {"clean": "clean simulation", "augmented": "with measurement nois
 
 
 def metrics_from_df(df: pd.DataFrame) -> pd.DataFrame:
-    """평가 CSV에서 파라미터별 지표 재계산."""
+    """Recompute per-parameter metrics from the evaluation CSV."""
     rows = []
     for name in PARAM_NAMES:
         clean = name.split(" (")[0]
@@ -77,8 +78,8 @@ def metrics_from_df(df: pd.DataFrame) -> pd.DataFrame:
 
 def plot_error_vs_thickness(df: pd.DataFrame, save_path: Path, title: str):
     """
-    두께에 따른 절대 오차. 어느 두께 구간에서 모델이 무너지는지 보여준다.
-    점이 수천 개라 그대로 뿌리면 뭉치므로, 구간 중앙값과 사분위 범위를 함께 그린다.
+    Absolute error against thickness; shows in which thickness range the model breaks down.
+    With thousands of points a raw scatter clumps, so the bin median and interquartile range are drawn too.
     """
     thick = df["Thickness_True"].to_numpy()
     abs_err = np.abs(df["Thickness_Error"].to_numpy())
@@ -108,8 +109,8 @@ def plot_error_vs_thickness(df: pd.DataFrame, save_path: Path, title: str):
     ax.plot(centers, med, color=ORIGIN_COLORS[0], marker="o", ms=5, mec=INK, mew=0.6, zorder=3, label="Median")
 
     ax.set_yscale("log")
-    # 0에 가까운 소수의 오차가 축을 6 decade로 늘려 중앙값/IQR을 짓눌러 버린다.
-    # 하한을 1 퍼센타일로 잘라내되, 잘린 비율을 그림 안에 밝힌다.
+    # a few errors near 0 stretch the axis over 6 decades and flatten the median/IQR.
+    # Clip the lower bound at the 1st percentile and state the clipped fraction in the figure.
     floor = np.percentile(abs_err, 1)
     below = float(np.mean(abs_err < floor) * 100)
     ax.set_ylim(bottom=floor, top=abs_err.max() * 1.5)
@@ -157,7 +158,7 @@ def build_for(label: str, variant: str, ablation_dir: Path, out_dir: Path, domai
         m.insert(0, "domain", domain)
         summary.append(m)
 
-    # 학습곡선은 체크포인트의 history에서
+    # training curves come from the checkpoint history
     ckpt_path = var_dir / "best.pt"
     if ckpt_path.exists():
         ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
@@ -165,7 +166,7 @@ def build_for(label: str, variant: str, ablation_dir: Path, out_dir: Path, domai
         if history:
             save_history_plot(history, out_dir / f"{label}_learning_curve.png", title_prefix=shown)
 
-    # 곡선 재구성 그림은 GenX 시뮬레이션이 필요하므로 기존 산출물을 가져온다
+    # reconstruction figures need a GenX simulation, so existing outputs are reused
     recon = var_dir / "reconstruction_analysis.png"
     if recon.exists():
         shutil.copy2(recon, out_dir / f"{label}_reconstruction.png")
@@ -202,8 +203,8 @@ def main():
     ablation_dir = root / "ablation"
     out_dir = ablation_dir / "report_figures"
     if args.clean and out_dir.exists():
-        # 파일 수는 세지 않는다 - 다른 프로세스가 방금 쓴 디렉터리를 열거하면
-        # 0이 나오는 경우가 있어 지운 개수를 신뢰할 수 없다. 삭제 자체는 정상.
+        # the file count is not reported: listing a directory another process just wrote
+        # sometimes returns 0, so the deleted count is unreliable. The deletion itself is fine.
         shutil.rmtree(out_dir)
         print(f"[Clean] cleared {out_dir}")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -216,7 +217,7 @@ def main():
 
 
 def write_readme(out_dir: Path, labels: list[str], domains: list[str]):
-    """그림이 무엇을 재는지, 무엇을 재지 않는지 함께 둔다."""
+    """Write what the figures measure and what they do not."""
     lines = [
         "# Report figures",
         "",

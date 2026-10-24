@@ -5,18 +5,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-
-# === User Modules ===
 from config import CONFIG
 from dataset import XRR1LayerDataset
 from torch.utils.data import DataLoader
-from tqdm import tqdm  # 진행상황 표시용
+from tqdm import tqdm
 from xrr_model import XRR1DRegressor
 
 from reflecto_exp.math_utils import powerspace
 from reflecto_exp.simulate.simul_genx import ParamSet, param2refl
 
-# 스타일 설정
 plt.style.use("seaborn-v0_8-paper")
 plt.rcParams.update(
     {
@@ -31,15 +28,12 @@ plt.rcParams.update(
 )
 
 
-# ------------------------------------------------------------
-# 0. FOM Calculation Logic
-# ------------------------------------------------------------
 def fom_log(ref_exp, ref_calc, epsilon=1e-10):
     """
     Calculates Figure of Merit (log-scale difference).
     Lower is better.
     """
-    # log(0) 방지
+    # avoid log(0)
     ref_exp = np.maximum(ref_exp, epsilon)
     ref_calc = np.maximum(ref_calc, epsilon)
     return np.mean(np.abs(np.log10(ref_exp) - np.log10(ref_calc)))
@@ -47,12 +41,11 @@ def fom_log(ref_exp, ref_calc, epsilon=1e-10):
 
 def calculate_all_foms(qs, preds, targets):
     """
-    전체 데이터셋에 대해 Curve를 생성하고 FOM을 계산합니다.
+    Build a curve for every sample and compute its FOM.
     """
     foms = []
     print("Calculating FOM for all test samples (Physics Simulation)...")
 
-    # 배치 처리가 가능하다면 더 빠르겠지만, 안전하게 루프로 처리
     for i in tqdm(range(len(preds))):
         p_pred = ParamSet(preds[i][0], preds[i][1], preds[i][2])
         p_true = ParamSet(targets[i][0], targets[i][1], targets[i][2])
@@ -67,9 +60,6 @@ def calculate_all_foms(qs, preds, targets):
     return np.array(foms)
 
 
-# ------------------------------------------------------------
-# 1. Metrics & Data Utils (Existing)
-# ------------------------------------------------------------
 def calculate_metrics(preds, targets):
     errors = preds - targets
     abs_errors = np.abs(errors)
@@ -88,17 +78,13 @@ def generate_results_df(preds, targets, errors, foms, param_names):
         data[f"{clean}_Pred"] = preds[:, i]
         data[f"{clean}_Error"] = errors[:, i]
 
-    # FOM 컬럼 추가
     data["FOM_Log"] = foms
     return pd.DataFrame(data)
 
 
-# ------------------------------------------------------------
-# 2. FOM Distribution Plot (New!)
-# ------------------------------------------------------------
 def save_fom_report(foms: np.ndarray, save_path: Path):
     """
-    FOM 분포를 히스토그램과 통계로 보여주는 보고서
+    Histogram and summary statistics of the FOM distribution.
     """
     if not save_path:
         return
@@ -106,9 +92,8 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
     fig = plt.figure(figsize=(10, 6), layout="constrained")
     gs = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1.5, 1])
 
-    # 1. Histogram & KDE
     ax1 = fig.add_subplot(gs[0])
-    # 이상치 제외하고 보여주기 위해 99% quantile까지만 자름 (그래프 가독성)
+    # clip at the 99th percentile so outliers do not stretch the histogram
     cut_off = np.percentile(foms, 99)
     foms_view = foms[foms <= cut_off]
 
@@ -117,14 +102,12 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
     ax1.set_xlabel("FOM Value (Lower is Better)")
     ax1.set_ylabel("Density")
 
-    # 평균, 중위수 표시
     mean_val = np.mean(foms)
     median_val = np.median(foms)
     ax1.axvline(mean_val, color="red", linestyle="--", linewidth=1.5, label=f"Mean: {mean_val:.4f}")
     ax1.axvline(median_val, color="orange", linestyle=":", linewidth=2, label=f"Median: {median_val:.4f}")
     ax1.legend()
 
-    # 2. Summary Stats Text Box
     ax2 = fig.add_subplot(gs[1])
     ax2.axis("off")
 
@@ -159,14 +142,10 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
     print(f"Saved FOM Report: {save_path}")
 
 
-# ------------------------------------------------------------
-# 3. Curve Reconstruction Plot (Updated with FOM)
-# ------------------------------------------------------------
 def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
     if not save_path:
         return
 
-    # FOM 기준으로 Best/Worst 정렬 (MSE 대신 FOM 사용이 더 설득력 있음)
     sorted_indices = np.argsort(foms)
 
     indices = np.concatenate(
@@ -187,7 +166,7 @@ def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
 
         t_true = targets[idx]
         t_pred = preds[idx]
-        fom_val = foms[idx]  # 해당 샘플의 FOM
+        fom_val = foms[idx]
 
         p_true = ParamSet(t_true[0], t_true[1], t_true[2])
         p_pred = ParamSet(t_pred[0], t_pred[1], t_pred[2])
@@ -198,10 +177,8 @@ def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
         ax.semilogy(qs, curve_true, "k-", lw=3, alpha=0.6, label="Ground Truth")
         ax.semilogy(qs, curve_pred, "r--", lw=2, label="AI Prediction")
 
-        # 제목에 FOM 표시 (핵심)
         title_str = f"{titles[i]}\nFOM: {fom_val:.5f} | Thick Err: {abs(t_true[0] - t_pred[0]):.1f}Å"
 
-        # FOM이 좋으면(낮으면) 초록색, 나쁘면 빨간색 텍스트
         color = "darkgreen" if fom_val < 0.05 else "black"
         if i >= 4:
             color = "firebrick"  # Worst cases
@@ -220,9 +197,6 @@ def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
     print(f"Saved Curve Proof: {save_path}")
 
 
-# ------------------------------------------------------------
-# 4. Investor Report (Metrics - Same as before)
-# ------------------------------------------------------------
 def save_investor_report_plots(df: pd.DataFrame, param_names: list[str], save_path: Path):
     if not save_path:
         return
@@ -272,9 +246,6 @@ def save_investor_report_plots(df: pd.DataFrame, param_names: list[str], save_pa
     print(f"Saved Metric Report: {save_path}")
 
 
-# ------------------------------------------------------------
-# 5. Pipeline
-# ------------------------------------------------------------
 def evaluate_pipeline(test_loader, checkpoint_path, stats_path, qs, output_dir):
 
     if not checkpoint_path.exists():
@@ -310,25 +281,19 @@ def evaluate_pipeline(test_loader, checkpoint_path, stats_path, qs, output_dir):
     preds_real = (preds_norm * param_std + param_mean).numpy()
     targets_real = (targets_norm * param_std + param_mean).numpy()
 
-    # --- FOM Calculation (NEW) ---
-    # 모든 샘플에 대해 시뮬레이션 및 FOM 계산
     foms = calculate_all_foms(qs, preds_real, targets_real)
 
     # Metrics
     metrics = calculate_metrics(preds_real, targets_real)
     param_names = ["Thickness (Å)", "Roughness (Å)", "SLD (10⁻⁶ Å⁻²)"]
 
-    # 1. Save CSV (with FOM)
     df = generate_results_df(preds_real, targets_real, metrics["errors"], foms, param_names)
     df.to_csv(output_dir / "evaluation_results_with_fom.csv", index=False)
 
-    # 2. Plots
     save_investor_report_plots(df, param_names, output_dir / "investor_metrics_report.png")
 
-    # 3. FOM Report (NEW Graph)
     save_fom_report(foms, output_dir / "investor_fom_stats.png")
 
-    # 4. Curve Proof with FOM Titles (Updated)
     save_curve_comparison(qs, preds_real, targets_real, foms, output_dir / "investor_curve_proof.png")
 
     # Console Output
@@ -340,9 +305,6 @@ def evaluate_pipeline(test_loader, checkpoint_path, stats_path, qs, output_dir):
     print("=" * 60)
 
 
-# ------------------------------------------------------------
-# 6. Main
-# ------------------------------------------------------------
 def main():
     base = Path(CONFIG["base_dir"])
     exp_dir = base / CONFIG["exp_name"]

@@ -30,7 +30,6 @@ class GenXFitter:
         model = Model()
         model.data = DataList([ds])
 
-        # 초기값
         sio_d, sio_sig, sio_sld = 15.0, 3.0, 18.8
 
         script = rf"""
@@ -127,8 +126,6 @@ def Sim(data):
         pars = Parameters()
         model = self.model
 
-        # --- Parameters ---
-        # 1. Material Params
         p_f_d = pars.append("v.set_f_d", model)
         p_f_d.min = 1.0
         p_f_d.max = self.init_d * 2
@@ -152,37 +149,32 @@ def Sim(data):
         p_s_sld.min = 10.0
         p_s_sld.max = 23.0
 
-        # 2. Instrument Params (I0 + Footprint)
         p_i0 = pars.append("v.set_i0", model)
         p_i0.value = 1.0
         p_i0.min = 0.1
         p_i0.max = 5.0
 
-        # [추가] 샘플 길이 피팅 (저각도 모양 결정)
         p_slen = pars.append("v.set_s_len", model)
-        p_slen.value = 10.0  # 초기값 10mm
-        p_slen.min = 2.0  # 최소 2mm
-        p_slen.max = 50.0  # 최대 50mm
+        p_slen.value = 10.0  # mm
+        p_slen.min = 2.0
+        p_slen.max = 50.0
 
-        # [추가] 빔 폭 (보통 고정하거나 미세 조정)
         p_beam = pars.append("v.set_beam_w", model)
-        p_beam.value = 0.1  # 초기값 0.1mm (슬릿 크기)
+        p_beam.value = 0.1  # mm, slit size
         p_beam.min = 0.01
         p_beam.max = 0.5
-        p_beam.fit = False  # 일단 고정 (원하면 True)
+        p_beam.fit = False
 
         model.parameters = pars
 
-        # --- Step 1: I0 & Footprint Fitting (Linear) ---
         if verbose:
             print("\n[GenX] Step 1: Fitting I0 & Sample Length...")
         model.set_fom_func(fom_funcs.diff)  # Linear Scale
 
-        # I0와 Sample Length는 서로 스케일에 영향을 주므로 같이 피팅
+        # I0 and sample length both scale the curve, so they are fitted together
         p_i0.fit = True
         p_slen.fit = True
 
-        # 나머지는 끔
         p_f_d.fit = False
         p_f_sig.fit = False
         p_f_sld.fit = False
@@ -195,12 +187,10 @@ def Sim(data):
         if verbose:
             print(f"  -> I0: {p_i0.value:.3f}, Sample Len: {p_slen.value:.2f} mm")
 
-        # --- Step 2: Full Fitting (Log) ---
         if verbose:
             print("[GenX] Step 2: Fitting All Params (Log)...")
         model.set_fom_func(fom_funcs.log)
 
-        # 미세조정 위해 I0, SampleLen 켜둠 (원하면 꺼도 됨)
         p_i0.fit = True
         p_slen.fit = True
 

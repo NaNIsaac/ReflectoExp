@@ -6,12 +6,8 @@ from pathlib import Path
 
 
 def get_venv_python() -> Path:
-    """
-    현재 프로젝트의 .venv 내 Python 실행 파일 경로를 반환합니다.
-    """
-    base_path = Path.cwd()  # 현재 작업 경로
+    base_path = Path.cwd()
 
-    # OS에 따른 실행 파일 경로 분기
     if platform.system() == "Windows":
         venv_python = base_path / ".venv" / "Scripts" / "python.exe"
     else:
@@ -26,22 +22,16 @@ def get_venv_python() -> Path:
 
 
 def find_exp_folder(exp_num: int, runs_dir_path: Path = Path("./runs")) -> Path:
-    """
-    runs 폴더 내에서 exp{num} 또는 exp0{num}으로 시작하는 폴더를 찾습니다.
-    """
-    # runs 폴더 존재 확인
+    """Folder under runs/ whose name starts with exp{num}_ or exp0{num}_."""
     if not runs_dir_path.exists():
         print(f"❌ [Error] '{runs_dir_path}' 디렉토리가 존재하지 않습니다.")
         sys.exit(1)
 
-    # 검색할 접두사 패턴 (예: exp5_, exp05_)
     target_prefixes = [f"exp{exp_num}_", f"exp{exp_num:02d}_"]
 
-    # iterdir()로 폴더 순회하며 찾기
     found_folder = None
     for item in runs_dir_path.iterdir():
         if item.is_dir():
-            # 폴더 이름이 접두사 중 하나로 시작하는지 확인
             if any(item.name.startswith(prefix) for prefix in target_prefixes):
                 found_folder = item
                 break
@@ -55,9 +45,6 @@ def find_exp_folder(exp_num: int, runs_dir_path: Path = Path("./runs")) -> Path:
 
 
 def run_main(target_folder: Path):
-    """
-    찾은 폴더 내부의 main.py를 가상환경 Python으로 실행합니다.
-    """
     venv_python = get_venv_python()
     target_script = target_folder / "main.py"
 
@@ -70,10 +57,9 @@ def run_main(target_folder: Path):
     print("-" * 50)
 
     try:
-        # subprocess에는 Path 객체를 문자열로 변환(str)해서 넘기는 것이 안전합니다.
         subprocess.run(
             [str(venv_python), "main.py"],
-            cwd=target_folder,  # 작업 디렉토리를 해당 실험 폴더로 변경
+            cwd=target_folder,
             check=True,
         )
     except subprocess.CalledProcessError as e:
@@ -87,8 +73,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # 1. 대상 폴더 찾기
     target_folder = find_exp_folder(args.exp_num)
 
-    # 2. 실행
     run_main(target_folder)

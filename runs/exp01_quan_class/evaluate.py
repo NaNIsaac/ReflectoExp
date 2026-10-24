@@ -20,7 +20,7 @@ class XRREvaluator:
         checkpoint_path: Path | str,
         batch_size: int = 64,
         device: str | torch.device = None,
-        num_workers: int = 0,  # Windows에서는 0~2 권장
+        num_workers: int = 0,  # 0-2 recommended on Windows
         pin_memory: bool = True,
     ):
         self.h5_path = Path(h5_path)
@@ -50,7 +50,6 @@ class XRREvaluator:
         self.model = XRRClassifier(q_len=self.q_len, n_layers=self.n_layers, n_th_bins=self.n_th, n_rg_bins=self.n_rg, n_sld_bins=self.n_sld).to(
             self.device
         )
-        # --- Safe checkpoint loading ---
         if self.checkpoint_path and self.checkpoint_path.is_file():
             try:
                 state = torch.load(self.checkpoint_path, map_location=self.device)
@@ -67,7 +66,6 @@ class XRREvaluator:
         self.ce = nn.CrossEntropyLoss()
 
     def evaluate(self, use_amp: bool = False, logits_clip: float = 50.0):
-        """모든 평가 데이터를 계산하고 결과 저장"""
         all_tgt_th, all_tgt_rg, all_tgt_sld = [], [], []
         all_pred_th, all_pred_rg, all_pred_sld = [], [], []
         all_losses = []
@@ -80,25 +78,21 @@ class XRREvaluator:
                 refl = refl.to(self.device)
                 labels = labels.to(self.device)
 
-                # --- AMP 실제 적용 ---
                 if use_amp and self.device.type == "cuda":
                     with torch.amp.autocast("cuda"):
                         th_logits, rg_logits, sld_logits = self.model(refl)
                 else:
                     th_logits, rg_logits, sld_logits = self.model(refl)
 
-                # --- logits clipping (학습과 동일하게) ---
                 if logits_clip is not None:
                     th_logits = th_logits.clamp(-logits_clip, logits_clip)
                     rg_logits = rg_logits.clamp(-logits_clip, logits_clip)
                     sld_logits = sld_logits.clamp(-logits_clip, logits_clip)
 
-                # --- target ---
                 tgt_th = labels[:, :, 0]
                 tgt_rg = labels[:, :, 1]
                 tgt_sld = labels[:, :, 2]
 
-                # --- Loss 계산(CrossEntropy 조합) ---
                 loss = (
                     self.ce(th_logits.reshape(-1, th_logits.shape[-1]), tgt_th.reshape(-1))
                     + self.ce(rg_logits.reshape(-1, rg_logits.shape[-1]), tgt_rg.reshape(-1))
@@ -106,7 +100,6 @@ class XRREvaluator:
                 )
                 all_losses.append(loss.item())
 
-                # --- 예측 저장 ---
                 all_tgt_th.append(tgt_th.cpu().numpy())
                 all_tgt_rg.append(tgt_rg.cpu().numpy())
                 all_tgt_sld.append(tgt_sld.cpu().numpy())
@@ -117,7 +110,6 @@ class XRREvaluator:
 
                 pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
-        # --- Flatten ---
         self.all_tgt_th = np.concatenate(all_tgt_th).ravel()
         self.all_tgt_rg = np.concatenate(all_tgt_rg).ravel()
         self.all_tgt_sld = np.concatenate(all_tgt_sld).ravel()
@@ -128,7 +120,6 @@ class XRREvaluator:
 
         self.all_losses = all_losses
 
-        # --- Accuracy ---
         self.acc_th = (self.all_pred_th == self.all_tgt_th).mean()
         self.acc_rg = (self.all_pred_rg == self.all_tgt_rg).mean()
         self.acc_sld = (self.all_pred_sld == self.all_tgt_sld).mean()
@@ -203,11 +194,9 @@ class XRREvaluator:
             else:
                 plt.scatter(tgt, pred, alpha=0.2, s=8)
 
-            # y = x선 (이상적 예측)
             tmin, tmax = tgt.min(), tgt.max()
             plt.plot([tmin, tmax], [tmin, tmax], "r--", linewidth=1.5, label="Ideal")
 
-            # 추세선 (회귀)
             coef = np.polyfit(tgt, pred, 1)
             poly = np.poly1d(coef)
             plt.plot([tmin, tmax], poly([tmin, tmax]), "b-", linewidth=1.2, label=f"Fit: y={coef[0]:.2f}x+{coef[1]:.2f}")
@@ -249,7 +238,7 @@ if __name__ == "__main__":
         h5_path=Path(os.environ["DATA"], r"XRR_AI\data\p300o6_raw.h5"),
         checkpoint_path=Path(os.environ["DATA"], r"XRR_AI\model\xrr_model.pt"),
         batch_size=64,
-        num_workers=0,  # Windows 안정성
+        num_workers=0,  # 0 for stability on Windows
     )
     metrics = evaluator.evaluate(use_amp=True)
     print(f"Validation Loss: {metrics['loss']:.4f}")

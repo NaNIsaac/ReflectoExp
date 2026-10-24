@@ -9,12 +9,11 @@ from torch.utils.data import DataLoader
 
 def evaluate(model, test_loader: DataLoader, stats_path: Path | str, report_file: Path | None = None, save_plot: bool = True):
     """
-    모델 평가: 역정규화 후 물리적 오류 계산
+    Evaluate the model; errors are computed after denormalization, in physical units.
     """
     stats_path = Path(stats_path)
     device = next(model.parameters()).device
 
-    # 정규화 파라미터 로드
     stats = torch.load(stats_path)
     param_mean = stats["param_mean"]
     param_std = stats["param_std"]
@@ -32,11 +31,9 @@ def evaluate(model, test_loader: DataLoader, stats_path: Path | str, report_file
             all_preds_norm.append(pred_norm)
             all_targets_norm.append(params_norm)
 
-    # 역정규화
     preds = torch.cat(all_preds_norm) * param_std + param_mean
     targets = torch.cat(all_targets_norm) * param_std + param_mean
 
-    # 오류 계산
     errors = preds - targets
     mae = torch.mean(torch.abs(errors), dim=0)
     rmse = torch.sqrt(torch.mean(errors**2, dim=0))
@@ -49,7 +46,6 @@ def evaluate(model, test_loader: DataLoader, stats_path: Path | str, report_file
         print(f"{name:15s}: MAE={mae[i]:7.3f} | RMSE={rmse[i]:7.3f}")
     print("=" * 50)
 
-    # 시각화
     if save_plot:
         fig, axes = plt.subplots(1, 3, figsize=(15, 4))
 
@@ -75,17 +71,13 @@ def evaluate(model, test_loader: DataLoader, stats_path: Path | str, report_file
 
 
 def load_checkpoint_and_evaluate(test_loader: DataLoader, checkpoint_path: Path, stats_path: Path, report_file: Path):
-    """체크포인트 로드 및 평가"""
-    # 체크포인트 로드
     ckpt = torch.load(checkpoint_path, map_location="cpu")
     config = ckpt["config"]["model_args"]
 
-    # 모든 인자로 모델 생성
     model = XRR1DRegressor(**config)
     model.load_state_dict(ckpt["model_state_dict"])
     model = model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
-    # 평가
     evaluate(model, test_loader, stats_path, report_file)
 
 

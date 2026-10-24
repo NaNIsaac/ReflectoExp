@@ -114,9 +114,6 @@ class XRRClassifier(nn.Module):
         return logits_th, logits_rg, logits_sld
 
 
-# -------------------------
-# Loss helper
-# -------------------------
 def multitask_loss(
     logits_th,
     logits_rg,
@@ -151,9 +148,6 @@ def accuracy_from_logits(logits, targets):
     return correct.mean().item()
 
 
-# -------------------------
-# Training / Validation
-# -------------------------
 def train_epoch(
     model: nn.Module,
     loader: torch.utils.data.DataLoader,
@@ -229,7 +223,6 @@ def validate_epoch(
 
             logits_th, logits_rg, logits_sld = model(refl)
 
-            # --- 안정성 확보: logits clipping ---
             if logits_clip is not None:
                 logits_th = logits_th.clamp(-logits_clip, logits_clip)
                 logits_rg = logits_rg.clamp(-logits_clip, logits_clip)

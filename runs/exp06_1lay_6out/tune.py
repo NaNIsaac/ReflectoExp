@@ -13,9 +13,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from xrr_model import XRR1DRegressor
 
-# ---------------------------------------------------------
-# 1. Settings
-# ---------------------------------------------------------
 N_TRIALS = 50  # Total number of trials
 N_EPOCHS_PER_TRIAL = 15  # Epochs per trial (keep it lower than full training)
 STUDY_NAME = "xrr_optimization"
@@ -47,7 +44,7 @@ def get_dataloaders(batch_size):
     train_set = XRR1LayerDataset(**dataset_kwargs, mode="train")
     val_set = XRR1LayerDataset(**dataset_kwargs, mode="val")
 
-    # Important: pin_memory=False for Windows stability if needed
+    # pin_memory=False if needed for Windows stability
     train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
@@ -55,9 +52,6 @@ def get_dataloaders(batch_size):
 
 
 def objective(trial):
-    # ---------------------------------------------------------
-    # 2. Define Hyperparameter Search Space
-    # ---------------------------------------------------------
     # Architecture
     n_channels = trial.suggest_categorical("n_channels", [32, 64])
     depth = trial.suggest_int("depth", 3, 5)
@@ -69,9 +63,6 @@ def objective(trial):
     weight_decay = trial.suggest_float("weight_decay", 1e-6, 1e-3, log=True)
     batch_size = trial.suggest_categorical("batch_size", [32, 64, 128])  # Keep max low to avoid OOM
 
-    # ---------------------------------------------------------
-    # 3. Setup (Model, Data, Optimizer)
-    # ---------------------------------------------------------
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     try:
@@ -94,12 +85,8 @@ def objective(trial):
     criterion = nn.MSELoss()
     scaler = torch.amp.GradScaler("cuda")
 
-    # ---------------------------------------------------------
-    # 4. Training Loop (Simplified for Tuning)
-    # ---------------------------------------------------------
     pbar = tqdm(range(N_EPOCHS_PER_TRIAL))
     for epoch in pbar:
-        # --- Train ---
         model.train()
         for inputs, targets in train_loader:
             inputs, targets = inputs.to(device), targets.to(device)
@@ -116,7 +103,6 @@ def objective(trial):
             scaler.step(optimizer)
             scaler.update()
 
-        # --- Validate ---
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
@@ -128,7 +114,6 @@ def objective(trial):
 
         avg_val_loss = val_loss / len(val_loader)
 
-        # --- Pruning (Early Stopping) ---
         # Report current result to Optuna
         trial.report(avg_val_loss, epoch)
 

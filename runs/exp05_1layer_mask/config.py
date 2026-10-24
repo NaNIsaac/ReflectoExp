@@ -44,28 +44,24 @@ CONFIG = {
 
 def save_config(config: dict, file: Path | str):
     """
-    딕셔너리를 JSON 파일로 저장합니다.
-    - Path -> str 변환
-    - Numpy 타입 -> python native 타입 변환
-    - 재귀적 탐색
-    - 듣도 보도 못한 타입(Custom Class 등) -> repr() 문자열로 변환하여 저장 (Fallback)
+    Save a dict as a JSON file.
+    - Path -> str
+    - numpy types -> native Python types
+    - recursive over dicts, lists and tuples
+    - any other type is stored as its repr() string (fallback)
     """
 
     def _to_serializable(obj):
-        # 1. 딕셔너리 재귀 호출
         if isinstance(obj, dict):
             return {k: _to_serializable(v) for k, v in obj.items()}
 
-        # 2. 리스트/튜플 재귀 호출
         if isinstance(obj, (list, tuple)):
             return [_to_serializable(v) for v in obj]
 
-        # 3. 이미 JSON 처리가 가능한 기본 타입들은 그대로 반환 (중요!)
-        # 이걸 안 하면 str도 repr() 타서 "'문자열'" 처럼 따옴표가 이중으로 저장됨
+        # JSON-native types pass through; otherwise a str would go through repr() and be stored with doubled quotes
         if isinstance(obj, (str, int, float, bool, type(None))):
             return obj
 
-        # 4. 특수 타입 처리
         if isinstance(obj, Path):
             return str(obj)
 
@@ -75,16 +71,13 @@ def save_config(config: dict, file: Path | str):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
 
-        # 5. [요청하신 기능] 그 외 모든 알 수 없는 타입은 repr() 문자열로 저장
         try:
             return repr(obj)
         except Exception:
             return "<Unserializable Object>"
 
-    # 변환 실행
     safe_config = _to_serializable(config)
 
-    # 경로 생성 및 저장
     save_path = Path(file)
     save_path.parent.mkdir(parents=True, exist_ok=True)
 

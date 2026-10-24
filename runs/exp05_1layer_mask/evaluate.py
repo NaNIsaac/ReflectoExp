@@ -1,4 +1,4 @@
-import argparse  # [New] 커맨드라인 인자 처리를 위해 추가
+import argparse
 from pathlib import Path
 
 import matplotlib.gridspec as gridspec
@@ -6,8 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-
-# === User Modules ===
 from config import CONFIG
 from dataset import XRR1LayerDataset
 from torch.utils.data import DataLoader
@@ -17,9 +15,6 @@ from xrr_model import XRR1DRegressor
 from reflecto_exp.math_utils import powerspace
 from reflecto_exp.simulate.simul_genx import ParamSet, param2refl
 
-# ------------------------------------------------------------
-# 0. Global Style Settings
-# ------------------------------------------------------------
 plt.style.use("seaborn-v0_8-paper")
 plt.rcParams.update(
     {
@@ -34,13 +29,7 @@ plt.rcParams.update(
 )
 
 
-# ------------------------------------------------------------
-# 1. Calculation Logic (Metrics & FOM)
-# ------------------------------------------------------------
 def calculate_metrics(preds: np.ndarray, targets: np.ndarray) -> dict:
-    """
-    기본적인 회귀 성능 지표 계산 (MAE, RMSE, MAPE)
-    """
     errors = preds - targets
     abs_errors = np.abs(errors)
 
@@ -60,8 +49,7 @@ def calculate_metrics(preds: np.ndarray, targets: np.ndarray) -> dict:
 
 def fom_log(ref_exp, ref_calc, epsilon=1e-10):
     """
-    Figure of Merit (Log-scale difference) 계산
-    낮을수록 좋음.
+    Figure of Merit (log-scale difference); lower is better.
     """
     ref_exp = np.maximum(ref_exp, epsilon)
     ref_calc = np.maximum(ref_calc, epsilon)
@@ -70,12 +58,11 @@ def fom_log(ref_exp, ref_calc, epsilon=1e-10):
 
 def calculate_all_foms(qs, preds, targets):
     """
-    AI 예측 파라미터로 물리 시뮬레이션을 돌려 실제 커브와 비교 (FOM 계산)
+    Simulate curves from the predicted parameters and compare them with the true curves (FOM).
     """
     foms = []
     print("\n[Physics Check] Calculating FOM for all test samples...")
 
-    # tqdm으로 진행상황 표시
     for i in tqdm(range(len(preds)), desc="Simulating Curves"):
         p_pred = ParamSet(preds[i][0], preds[i][1], preds[i][2])
         p_true = ParamSet(targets[i][0], targets[i][1], targets[i][2])
@@ -98,16 +85,12 @@ def generate_results_df(preds, targets, errors, foms, param_names):
         data[f"{clean}_Pred"] = preds[:, i]
         data[f"{clean}_Error"] = errors[:, i]
 
-    # FOM 컬럼 추가 (foms가 있을 때만)
     if foms is not None:
         data["FOM_Log"] = foms
 
     return pd.DataFrame(data)
 
 
-# ------------------------------------------------------------
-# 2. Plotting Functions
-# ------------------------------------------------------------
 def save_history_plot(history: dict, save_path: Path) -> None:
     if not save_path or not history:
         return
@@ -155,7 +138,6 @@ def save_investor_report_plots(df: pd.DataFrame, param_names: list[str], save_pa
         y_pred = df[f"{clean}_Pred"].values
         err = df[f"{clean}_Error"].values
 
-        # 1. Hexbin Scatter
         ax1 = fig.add_subplot(gs[0, i])
         min_v = min(y_true.min(), y_pred.min())
         max_v = max(y_true.max(), y_pred.max())
@@ -166,7 +148,6 @@ def save_investor_report_plots(df: pd.DataFrame, param_names: list[str], save_pa
         ax1.text(0.05, 0.95, f"$R^2 = {corr**2:.3f}$", transform=ax1.transAxes, bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0.9})
         ax1.set_title(f"{clean}: Pred vs True", fontweight="bold")
 
-        # 2. Residuals Plot
         ax2 = fig.add_subplot(gs[1, i])
         ax2.scatter(y_true, err, alpha=0.4, s=15, color=colors[i % len(colors)], edgecolor="w", linewidth=0.5)
         ax2.axhline(0, color="black", linestyle="--")
@@ -175,7 +156,6 @@ def save_investor_report_plots(df: pd.DataFrame, param_names: list[str], save_pa
         ax2.axhline(-1.96 * std_err, color="red", linestyle=":", alpha=0.6)
         ax2.set_title(f"{clean}: Residuals", fontweight="bold")
 
-        # 3. CDF
         ax3 = fig.add_subplot(gs[2, i])
         sorted_abs_err = np.sort(np.abs(err))
         p = 1.0 * np.arange(len(err)) / (len(err) - 1)
@@ -200,7 +180,6 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
     fig = plt.figure(figsize=(10, 6), layout="constrained")
     gs = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1.5, 1])
 
-    # 1. Histogram
     ax1 = fig.add_subplot(gs[0])
     cut_off = np.percentile(foms, 99)
     foms_view = foms[foms <= cut_off]
@@ -216,7 +195,6 @@ def save_fom_report(foms: np.ndarray, save_path: Path):
     ax1.axvline(median_val, color="orange", linestyle=":", linewidth=2, label=f"Median: {median_val:.4f}")
     ax1.legend()
 
-    # 2. Stats Text
     ax2 = fig.add_subplot(gs[1])
     ax2.axis("off")
 
@@ -255,10 +233,8 @@ def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
     if not save_path or foms is None:
         return
 
-    # FOM 기준으로 정렬
     sorted_indices = np.argsort(foms)
 
-    # Best 2, Random 2, Worst 2 선택
     indices = np.concatenate([sorted_indices[:2], np.random.choice(sorted_indices[2:-2], 2, replace=False), sorted_indices[-2:]])
 
     titles = ["Best Case 1", "Best Case 2", "Random Case 1", "Random Case 2", "Worst Case 1", "Worst Case 2"]
@@ -303,9 +279,6 @@ def save_curve_comparison(qs, preds, targets, foms, save_path: Path):
     print(f"Saved Curve Comparison: {save_path}")
 
 
-# ------------------------------------------------------------
-# 3. Main Evaluation Pipeline
-# ------------------------------------------------------------
 def evaluate_pipeline(
     test_loader: DataLoader,
     checkpoint_path: Path,
@@ -326,7 +299,6 @@ def evaluate_pipeline(
     else:
         print(">> Option: Physics-based FOM calculation is DISABLED.")
 
-    # 1. Load Stats & Model
     stats = torch.load(stats_path, map_location="cpu")
     param_mean = stats["param_mean"]
     param_std = stats["param_std"]
@@ -341,7 +313,6 @@ def evaluate_pipeline(
 
     print(f"Model loaded: {checkpoint_path.name}")
 
-    # 2. Run Inference
     preds_list, targets_list = [], []
     with torch.no_grad():
         for X, y in tqdm(test_loader, desc="Inference"):
@@ -353,20 +324,16 @@ def evaluate_pipeline(
     preds_norm = torch.cat(preds_list)
     targets_norm = torch.cat(targets_list)
 
-    # 3. Denormalize
     preds_real = (preds_norm * param_std + param_mean).numpy()
     targets_real = (targets_norm * param_std + param_mean).numpy()
 
-    # 4. Calculate Physics FOM (Optional)
     foms = None
     if calc_physics_fom:
         foms = calculate_all_foms(qs, preds_real, targets_real)
 
-    # 5. Calculate Standard Metrics
     metrics = calculate_metrics(preds_real, targets_real)
     param_names = ["Thickness (Å)", "Roughness (Å)", "SLD (10⁻⁶ Å⁻²)"]
 
-    # 6. Console Output Summary
     print("\n" + "=" * 65)
     print(f"{'Parameter':<20} | {'MAE':<10} | {'RMSE':<10} | {'MAPE (%)':<10}")
     print("-" * 65)
@@ -378,7 +345,6 @@ def evaluate_pipeline(
         print(f"Mean FOM: {np.mean(foms):.5f} | Median FOM: {np.median(foms):.5f}")
     print("=" * 65)
 
-    # 7. Save Outputs
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # CSV Report
@@ -400,11 +366,7 @@ def evaluate_pipeline(
         print("Skipping physics-based plots (FOM Stats, Curve Comparison) as FOM was not calculated.")
 
 
-# ------------------------------------------------------------
-# 4. Main Entry
-# ------------------------------------------------------------
 def main():
-    # Argument Parser 추가
     parser = argparse.ArgumentParser(description="Evaluate XRR AI Model")
     parser.add_argument("--fom", action="store_true", help="Calculate physics-based FOM (Slow!)")
     args = parser.parse_args()

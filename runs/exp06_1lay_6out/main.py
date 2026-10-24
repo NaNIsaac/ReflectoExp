@@ -81,7 +81,6 @@ def main():
     print("=== 1-Layer XRR Regression Pipeline Started ===")
     if not Path(CONFIG["base_dir"]).exists():
         raise FileNotFoundError(f"Base directory {CONFIG['base_dir']} does not exist.")
-    # 1. Setup and Path Preparation
     set_seed(42)
 
     exp_dir = Path(CONFIG["base_dir"]) / CONFIG["exp_name"]
@@ -99,13 +98,10 @@ def main():
     )
     save_config(CONFIG, config_file_json)
     print(f"Config file saved at '{config_file_json}'")
-    # 2. Data Preparation
     ensure_data_exists(qs, CONFIG, h5_file)
 
-    # 3. Create Loaders
     train_loader, val_loader, test_loader = get_dataloaders(qs, CONFIG, h5_file, stats_file)
 
-    # 4. Model Initialization
     print("Initializing model...")
     model = XRR1DRegressor(
         q_len=CONFIG["simulation"]["q_points"],
@@ -120,7 +116,6 @@ def main():
     param_count = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Model parameters: {param_count:,}")
 
-    # 5. Training Setup and Execution
     trainer = Trainer(
         model=model,
         train_loader=train_loader,
@@ -134,7 +129,6 @@ def main():
     print("Starting training...")
     trainer.train(CONFIG["training"]["epochs"])
 
-    # 6. Final Evaluation
     print("\n" + "=" * 50)
     print("Performing Final Test Evaluation")
     print("=" * 50)

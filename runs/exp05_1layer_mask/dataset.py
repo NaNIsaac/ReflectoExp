@@ -14,7 +14,6 @@ class XRRPreprocessor:
     """
 
     def __init__(self, qs: np.ndarray, stats_file: Path | str | None = None, device: torch.device = torch.device("cpu")):
-        # 1. Set up Master Grid
         self.target_q = qs
         self.device = device
         self.param_mean = None
@@ -33,19 +32,17 @@ class XRRPreprocessor:
         """
         Raw Data (Linear q) -> Model Input Tensor (Power q)
         """
-        # 1. 데이터 정제 (NaN 방지)
 
         R_raw = np.nan_to_num(R_raw, nan=1e-15, posinf=1e-15, neginf=1e-15)
 
-        # 2. Normalize (Max=1.0) -> Log Scale
         R_max = np.max(R_raw)
         if R_max <= 0:
-            R_max = 1.0  # 0 나누기 방지
+            R_max = 1.0  # avoid division by zero
 
         R_norm = R_raw / R_max
         R_log = np.log10(np.maximum(R_norm, 1e-15))
 
-        # 3. 오름차순 정렬 (np.interp는 x가 정렬되어 있어야 함)
+        # np.interp needs ascending x
         if q_raw[0] > q_raw[-1]:
             q_raw = q_raw[::-1]
             R_log = R_log[::-1]
@@ -54,14 +51,13 @@ class XRRPreprocessor:
 
         R_interp = np.interp(self.target_q, q_raw, R_log, left=padding_val, right=padding_val)
 
-        # 모델 그리드(target_q) 중 실측 데이터(q_raw) 범위 안에 있는 것만 유효(1)
+        # the mask is 1 where the model grid lies inside the measured q range
         q_valid_mask = (self.target_q >= np.min(q_raw)) & (self.target_q <= np.max(q_raw))
 
-        # 5. Tensor 변환
         R_tensor = torch.from_numpy(R_interp.astype(np.float32))
         mask_tensor = torch.from_numpy(q_valid_mask.astype(np.float32))
 
-        # (2, N) 형태로 반환 [LogR, Mask]
+        # (2, N): [LogR, Mask]
         return torch.stack([R_tensor, mask_tensor], dim=0)
 
     def denormalize_params(self, params_norm):
@@ -239,18 +235,16 @@ class XRR1LayerDataset(Dataset):
         if slack <= 0:
             return R_raw, q_raw
 
-        # 1. Front Crop: Limit to max 0.04 to protect critical angle (0.03~0.04)
-        # Crop up to the smaller of 20% of slack or 0.04
+        # front crop: at most 0.04, to protect the critical angle (0.03-0.04)
         max_front_limit = 0.04
         front_crop_limit = min(slack * 0.2, max_front_limit)
 
         crop_start = np.random.uniform(0, front_crop_limit)
 
-        # 2. Back Crop: Allocate remaining slack to back cropping
+        # back crop: spend the remaining slack
         remaining_slack = slack - crop_start
         crop_end = np.random.uniform(0, remaining_slack)
 
-        # 3. Slicing
         new_min = current_min + crop_start
         new_max = current_max - crop_end
 

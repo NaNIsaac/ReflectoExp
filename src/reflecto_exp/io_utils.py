@@ -66,17 +66,16 @@ def load_xrr_dat(file: Path | str) -> tuple[ndarray, ndarray]:
     - Converts non-numeric garbage to 0.0 safely.
     """
 
-    # 1. read_csv의 파라미터를 활용해 한 번에 파싱
-    # comment='#': #으로 시작하는 줄이나, 데이터 뒤에 붙은 # 주석을 무시함
-    # sep=r"\s+": 탭, 공백 등 길이가 다른 공백도 분리자로 인식
+    # comment='#' ignores lines starting with # and trailing # comments after the data
+    # sep=r"\s+" accepts tabs and runs of spaces as separators
     df = pd.read_csv(file, header=None, sep=r"\s+", comment="#", names=["tth", "R"])
 
-    # 2. 숫자가 아닌 데이터(Garbage)가 섞여 있을 경우를 대비한 안전장치
-    # (이미 comment='#'로 대부분 걸러지지만, 혹시 모를 텍스트 찌꺼기 처리)
+    # guard against non-numeric garbage mixed into the data
+    # (comment='#' removes most of it, but stray text can remain)
     df = df.apply(pd.to_numeric, errors="coerce")
 
-    # 3. NaN(변환 실패한 값)을 0.0으로 채우고 Numpy 변환
-    # 원본 데이터 순서를 보장하기 위해 fillna 사용
+    # NaN (failed conversions) becomes 0.0, then convert to numpy
+    # fillna keeps the original row order
     df = df.fillna(0.0)
 
     return df["tth"].to_numpy(), df["R"].to_numpy()

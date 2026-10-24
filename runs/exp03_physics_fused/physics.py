@@ -19,10 +19,6 @@ def func_gauss3(x, a1, p1, w1, a2, p2, w2, a3, p3, w3):
 
 
 def xrr_fft(x, y, d=None, window=2, n=None, step_num: int = 1000):
-    """
-    FFT 변환 (XRR 분석 전용)
-    """
-    # 등간격 보간
     f_cubic = interpolate.interp1d(x, y, kind="cubic")
     x = np.linspace(x.min(), x.max(), step_num)
     y = f_cubic(x)
@@ -78,7 +74,7 @@ class PhysicsLayer(nn.Module):
         self.dq = float(q_values[1] - q_values[0])
 
     def forward(self, reflectivity: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """반환값: (physics_output, validity_mask)"""
+        """Returns (physics_output, validity_mask)."""
         B = reflectivity.shape[0]
         device = reflectivity.device
 
@@ -92,7 +88,6 @@ class PhysicsLayer(nn.Module):
             fitted_params = self._process_single_with_fitting(q_np, R_batch_np[i])
 
             if fitted_params is not None:
-                # 첫 피크 = 첫 번째 두께, 두 번째 피크 = 두 번째 두께
                 physics_output[i, 0] = float(fitted_params[1])  # p1
                 physics_output[i, 1] = float(fitted_params[4])  # p2
                 validity_mask[i] = 1.0
@@ -100,14 +95,11 @@ class PhysicsLayer(nn.Module):
         return physics_output, validity_mask
 
     def _process_single_with_fitting(self, q: np.ndarray, R: np.ndarray):
-        """valid_comb 로직 적용 + 피팅"""
-        # 1. Baseline 제거
+        """Apply the valid_comb logic, then fit."""
         R_baseline_removed = self._remove_baseline(R)
 
-        # 2. FFT
         x_fft, y_fft = self._compute_fft(q, R_baseline_removed)
 
-        # 3. 피크 검출
         upper_idx = np.searchsorted(x_fft, self.max_total_thickness)
         if upper_idx <= 10:
             return None
@@ -118,30 +110,25 @@ class PhysicsLayer(nn.Module):
         print(peak_indices)
         if len(peak_indices) > 7:
             return None
-        # 4. 피크 위치
         peaks = x_fft[peak_indices]
 
-        # 5. valid_comb 로직으로 유효한 조합 찾기
         valid_combs = self._find_valid_combinations(peaks)
-        # 6. 조합이 없으면 fallback: Top 3 피크
+        # fall back to the top 3 peaks when no valid combination exists
         if len(valid_combs) == 0:
             peak_heights = y_fft[peak_indices]
             top3_idx = np.argsort(-peak_heights)[:3]
             top3_peaks = x_fft[peak_indices[top3_idx]]
 
-            # 중복 제거
             unique_peaks = self._select_unique_peaks(top3_peaks, y_fft, x_fft)
             if len(unique_peaks) < 3:
                 return None
             valid_combs = [unique_peaks]
 
-        # 7. 각 조합 피팅 & 최적 결과 선택
         best_params = None
         best_score = -1.0
 
         for comb in valid_combs:
             try:
-                # 피팅 범위
                 fit_min = max(0, min(comb) - 10)
                 fit_max = max(comb) + 10
 
@@ -152,7 +139,6 @@ class PhysicsLayer(nn.Module):
                 x_fit = x_fft[fit_mask]
                 y_fit = y_fft[fit_mask]
 
-                # 초기값
                 p0 = [0.1, comb[0], 5.0, 0.1, comb[1], 5.0, 0.1, comb[2], 5.0]
 
                 # # Bounds
@@ -160,10 +146,8 @@ class PhysicsLayer(nn.Module):
                 # bounds_upper = [np.inf, max(x_fit), np.inf, np.inf, max(x_fit), np.inf, np.inf, max(x_fit), np.inf]
                 # bounds = (bounds_lower, bounds_upper)
 
-                # 피팅
                 popt, pcov = curve_fit(func_gauss3, x_fit, y_fit, p0=p0, maxfev=2000)
 
-                # 품질 점수 (covariance trace)
                 score = 1.0 / (1.0 + np.trace(pcov))
 
                 if score > best_score:
@@ -190,7 +174,7 @@ class PhysicsLayer(nn.Module):
         return result
 
     def _select_unique_peaks(self, peaks: np.ndarray, y_fft: np.ndarray, x_fft: np.ndarray):
-        """중복 제거 + 최소 간격 적용"""
+        """Drop duplicate peaks and enforce a minimum spacing."""
         peak_heights = np.array([y_fft[np.argmin(np.abs(x_fft - p))] for p in peaks])
         sorted_idx = np.argsort(-peak_heights)
         peaks_sorted = peaks[sorted_idx]
@@ -244,11 +228,9 @@ if __name__ == "__main__":
 
     physics_layer = PhysicsLayer(qs_tensor, n_layers=2)
 
-    # 추정 실행
     with torch.no_grad():
         est_thickness, confidence = physics_layer(refl_tensor)
 
-    # 결과 출력
     print("\nPhysicsLayer 추정 결과:")
     print(f"추정 두께: {est_thickness[0].numpy()} Å")
     print(confidence)

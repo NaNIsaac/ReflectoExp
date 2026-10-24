@@ -19,13 +19,10 @@ from reflecto_exp.simulate.simul_genx import ParamSet, param2refl
 
 apply_origin_style()
 
-# 유니코드 위첨자는 mathtext 폰트에 글리프가 없어 경고가 나므로 mathtext로 표기
+# unicode superscripts have no glyph in the mathtext font and trigger warnings, so mathtext is used
 PARAM_NAMES = ["Thickness (Å)", "Roughness (Å)", r"SLD (10$^{-6}$ Å$^{-2}$)"]
 
 
-# -----------------------------------------------------------------------------
-# 1. Advanced Metrics
-# -----------------------------------------------------------------------------
 def calculate_r2(true, pred):
     """Calculate R^2 (Coefficient of Determination)"""
     ss_res = np.sum((true - pred) ** 2, axis=0)
@@ -52,9 +49,6 @@ def calculate_metrics(preds: np.ndarray, targets: np.ndarray) -> dict:
     }
 
 
-# -----------------------------------------------------------------------------
-# 2. Reporting & Saving
-# -----------------------------------------------------------------------------
 def save_results_csv(df: pd.DataFrame, save_path: Path):
     if not save_path:
         return
@@ -64,11 +58,10 @@ def save_results_csv(df: pd.DataFrame, save_path: Path):
 
 
 def save_worst_cases(df: pd.DataFrame, abs_errors: np.ndarray, save_path: Path, top_k=50):
-    """가장 에러가 큰 샘플들의 정보를 저장"""
     if not save_path:
         return
 
-    # 두께 에러 기준으로 정렬 (가장 중요한 물성)
+    # sorted by thickness error, the most important parameter
     # Thickness column index assumed 0
     thick_errs = abs_errors[:, 0]
     worst_indices = np.argsort(thick_errs)[::-1][:top_k]
@@ -90,11 +83,8 @@ def print_metrics_table(metrics: dict, param_names: list):
     print("=" * 80)
 
 
-# -----------------------------------------------------------------------------
-# 3. Visualization (The Ultimate Plotter)
-# -----------------------------------------------------------------------------
 def _outside_note(ax, frac: float, loc: str = "lower right"):
-    """축 밖으로 잘려 나간 점의 비율을 그림 안에 남긴다."""
+    """Record the fraction of points clipped off the axes in the figure."""
     if frac <= 0:
         return
     x, ha = (0.99, "right") if "right" in loc else (0.01, "left")
@@ -104,9 +94,9 @@ def _outside_note(ax, frac: float, loc: str = "lower right"):
 
 def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path, title_prefix: str = "", clip_axes: bool = False):
     """
-    clip_axes=True면 소수의 큰 이상치가 축을 늘려 본체를 뭉개는 것을 막는다.
-    parity는 참값 범위로, 오차 히스토그램은 0.5-99.5 퍼센타일로 자르고
-    잘린 비율을 그림에 표기한다.
+    clip_axes=True keeps a few large outliers from stretching the axes and squashing the bulk.
+    Parity is cut to the true-value range, the error histogram to the 0.5-99.5 percentiles,
+    and the clipped fraction is written on the figure.
     """
     if not save_path:
         return
@@ -121,7 +111,7 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path, 
         err = df[f"{clean}_Error"].values
         color = ORIGIN_COLORS[i % len(ORIGIN_COLORS)]
 
-        # 1. Parity plot - 1:1 기준선은 계열이 아니라 참조선이므로 검은색
+        # parity plot; the 1:1 line is a reference, not a series, so it is black
         ax_s = style_axes(axes[0][i])
         min_v = min(y_true.min(), y_pred.min())
         max_v = max(y_true.max(), y_pred.max())
@@ -129,7 +119,7 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path, 
         ax_s.scatter(y_true, y_pred, s=10, facecolor=color, edgecolor="none", alpha=0.35)
         ax_s.plot([min_v, max_v], [min_v, max_v], color=INK, lw=1.2, linestyle="--", label="1:1")
 
-        # 지표는 항상 전체 데이터로 계산한다 - 축만 자른다
+        # metrics always use the full data; only the axes are clipped
         r2 = calculate_r2(y_true, y_pred)
         ax_s.set_title(f"{name}    $R^2$ = {r2:.4f}")
         ax_s.set_xlabel("Ground truth")
@@ -145,7 +135,6 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path, 
             ax_s.set_aspect("equal", adjustable="box")
             _outside_note(ax_s, outside)
 
-        # 2. Error histogram
         ax_h = style_axes(axes[1][i])
         mu, sigma = np.mean(err), np.std(err)
 
@@ -178,7 +167,7 @@ def save_correlation_plot(df: pd.DataFrame, param_names: list, save_path: Path, 
 
 
 def save_history_plot(history: dict, save_path: Path, title_prefix: str = ""):
-    """학습/검증 손실 곡선과 LR 스케줄을 저장"""
+    """Save training/validation loss curves and the LR schedule."""
     train = history.get("train", [])
     val = history.get("val", [])
     lrs = history.get("lr", [])
@@ -228,30 +217,23 @@ def save_history_plot(history: dict, save_path: Path, title_prefix: str = ""):
 
 def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None, title_prefix: str = ""):
     """
-    파라미터 조합(Thickness vs Roughness)에 따른 예측 난이도(MAE) 시각화
+    Visualize prediction difficulty (MAE) over parameter combinations (thickness vs roughness).
     """
-    # 1. 구간화 (Binning): 연속적인 파라미터를 10개 구간으로 나눔
-    # 데이터의 분포에 따라 bins 숫자를 조절하세요.
     n_bins = 10
 
-    # 분석용 임시 복사본 생성 및 절대 오차 계산
     plot_df = df.copy()
     plot_df["Abs_Thick_Err"] = plot_df["Thickness_Error"].abs()
 
-    # 구간 생성 (pd.cut 사용)
     plot_df["Thick_Bin"] = pd.cut(plot_df["Thickness_True"], bins=n_bins).apply(lambda x: int(x.mid))
     plot_df["Rough_Bin"] = pd.cut(plot_df["Roughness_True"], bins=n_bins).apply(lambda x: int(x.mid))
 
-    # 2. 피벗 테이블 생성 (Index: Roughness, Columns: Thickness, Values: MAE)
     pivot_table = plot_df.pivot_table(values="Abs_Thick_Err", index="Rough_Bin", columns="Thick_Bin", aggfunc="mean", observed=False)
 
-    # 물리적 직관을 위해 Index 정렬 (Roughness가 위로 갈수록 커지게)
     pivot_table = pivot_table.sort_index(ascending=False)
 
-    # 3. 시각화
     fig, ax = plt.subplots(figsize=(10, 8))
 
-    # 크기(magnitude)를 나타내므로 단일 색상 ramp를 밝음→어두움으로. 무지개 금지.
+    # magnitude: one-hue ramp from light to dark, no rainbow
     sns.heatmap(
         pivot_table,
         annot=True,
@@ -263,7 +245,7 @@ def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None, title_pr
         ax=ax,
     )
 
-    # heatmap은 minor tick이 의미 없으므로 프레임만 적용
+    # minor ticks mean nothing on a heatmap, so only the frame is styled
     for spine in ax.spines.values():
         spine.set_visible(True)
         spine.set_linewidth(1.2)
@@ -275,7 +257,6 @@ def plot_error_heatmap(df: pd.DataFrame, save_path: Path | None = None, title_pr
     ax.set_xlabel("True thickness (Å)")
     ax.set_ylabel("True roughness (Å)")
 
-    # 4. 물리적 해석 가이드라인 추가
     if save_path:
         plt.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"[Save] Error Heatmap: {save_path.name}")
@@ -288,7 +269,7 @@ def plot_single_curve(ax_main, ax_res, qs, R_true, R_pred, title):
     style_axes(ax_main)
     style_axes(ax_res)
 
-    # 측정값은 검은 실선(참조), 재구성은 계열 색 파선
+    # measured data: black solid line (reference); reconstruction: dashed in the series color
     ax_main.plot(qs, R_true, color=INK, lw=1.2, label="Ground truth")
     ax_main.plot(qs, R_pred, color=ORIGIN_COLORS[0], lw=1.2, ls="--", label="AI recon.")
     ax_main.set_yscale("log")
@@ -367,9 +348,6 @@ def save_advanced_reconstruction(
     print(f"[Save] Reconstruction Plot: {save_path.name}")
 
 
-# -----------------------------------------------------------------------------
-# 4. Pipeline
-# -----------------------------------------------------------------------------
 def run_inference(model, loader, device):
     model.eval()
     preds, targets = [], []
@@ -396,7 +374,6 @@ def evaluate_pipeline(
         print("❌ Error: Missing checkpoint or stats file.")
         return
 
-    # 1. Load Resources
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     stats = torch.load(stats_path, map_location="cpu")
 
@@ -405,16 +382,13 @@ def evaluate_pipeline(
     # Handle older checkpoint compatibility
     model_args = config_dict.get("model_args", config_dict)
 
-    # 2. Model Init
     model = XRRPhysicsModel(**model_args).to(device)
     model.load_state_dict(ckpt["model_state_dict"])
     print(f"✅ Model loaded from {checkpoint_path.name}")
     print(f"   (Fourier: {model.use_fourier})")
 
-    # 3. Inference
     preds_norm, targets_norm = run_inference(model, test_loader, device)
 
-    # 4. Denormalize
     p_mean = stats["param_mean"]
     p_std = stats["param_std"]
 
@@ -424,7 +398,6 @@ def evaluate_pipeline(
     preds_np = preds_real.numpy()
     targets_np = targets_real.numpy()
 
-    # 5. Metrics & DataFrame
     metrics = calculate_metrics(preds_np, targets_np)
     param_names = PARAM_NAMES
 
@@ -437,7 +410,6 @@ def evaluate_pipeline(
 
     print_metrics_table(metrics, param_names)
 
-    # 6. Save Reports
     if report_csv_path:
         save_results_csv(df, report_csv_path)
         # Save worst cases for debugging
@@ -455,7 +427,6 @@ def evaluate_pipeline(
 
         plot_error_heatmap(df, save_path=report_img_path.parent / "error_heatmap.png")
 
-    # 7. History Plot
     if report_history_path:
         history = ckpt.get("history", {})
         if history:
@@ -466,31 +437,24 @@ def evaluate_pipeline(
     return metrics
 
 
-# -----------------------------------------------------------------------------
-# 5. Main Entry Point for Standalone Evaluation
-# -----------------------------------------------------------------------------
 def main():
     print(f"=== Starting Evaluation for Experiment: {CONFIG['exp_name']} ===")
 
-    # 1. 경로 설정 (main.py의 로직과 동기화)
     exp_dir = Path(CONFIG["base_dir"]) / CONFIG["exp_name"]
     h5_file = exp_dir / "dataset.h5"
     stats_file = exp_dir / "stats.pt"
-    checkpoint_file = exp_dir / "best.pt"  # 혹은 "last.pt"
+    checkpoint_file = exp_dir / "best.pt"
 
     if not checkpoint_file.exists():
         print(f"❌ Error: Checkpoint not found at {checkpoint_file}")
         return
 
-    # 2. Q-Vector 생성 (물리 모델 계산용)
     qs = np.linspace(
         CONFIG["simulation"]["q_min"],
         CONFIG["simulation"]["q_max"],
         CONFIG["simulation"]["q_points"],
     )
 
-    # 3. Test DataLoader 준비
-    # evaluate 모드이므로 augmentation은 끄고 데이터 로드만 수행
     print("Preparing Test DataLoader...")
     test_ds = XRR1LayerDataset(
         qs=qs,
@@ -499,7 +463,7 @@ def main():
         mode="test",
         val_ratio=CONFIG["training"]["val_ratio"],
         test_ratio=CONFIG["training"]["test_ratio"],
-        augment=False,  # 평가 시에는 원본 데이터 사용
+        augment=False,
     )
 
     test_loader = DataLoader(
@@ -510,8 +474,6 @@ def main():
         pin_memory=torch.cuda.is_available(),
     )
 
-    # 4. Pipeline 실행
-    # 결과물들은 실험 폴더(exp_dir) 내부로 저장되도록 경로 설정
     evaluate_pipeline(
         test_loader=test_loader,
         checkpoint_path=checkpoint_file,
@@ -526,7 +488,6 @@ def main():
 
 
 if __name__ == "__main__":
-    # 실행 시 GPU 메모리 효율화를 위해 세팅
     if torch.cuda.is_available():
         torch.backends.cudnn.benchmark = True
 

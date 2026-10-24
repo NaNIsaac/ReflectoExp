@@ -1,18 +1,18 @@
 """
-과제 보고용 확장 지표 산출기.
+Extended metrics for the assignment report.
 
-추론을 다시 돌리지 않는다 - ablation 평가가 남긴 evaluation_results_{tag}.csv에는
-샘플별 True/Pred/Error가 그대로 있으므로 거기서 전부 계산한다.
-추론 속도만 예외로, 실제 모델을 올려 측정한다(--benchmark).
+Inference is not rerun: evaluation_results_{tag}.csv from the ablation evaluation holds
+per-sample True/Pred/Error, so everything is computed from it.
+Inference speed is the exception; it is measured with a real model (--benchmark).
 
-산출물 (ablation/metrics/):
-  metrics_extended_{tag}.csv   파라미터별 MAE/RMSE/MAPE/MedAE/P90/P95/bias/SD/R2
-  metrics_tolerance_{tag}.csv  허용오차 내 샘플 비율
-  metrics_by_thickness_{tag}.csv  두께 구간별 분해
-  metrics_cost.csv             파라미터 수 / 학습 시간 / 수렴 epoch / 추론 처리량
-  METRICS.md                   위 표를 마크다운으로 (과제에 붙여넣기용)
+Outputs (ablation/metrics/):
+  metrics_extended_{tag}.csv   per-parameter MAE/RMSE/MAPE/MedAE/P90/P95/bias/SD/R2
+  metrics_tolerance_{tag}.csv  fraction of samples within a tolerance
+  metrics_by_thickness_{tag}.csv  breakdown by thickness bin
+  metrics_cost.csv             parameter count / training time / convergence epoch / inference throughput
+  METRICS.md                   the tables above as markdown (to paste into the assignment)
 
-사용:
+Usage:
     python runs/exp07_fourier_hires/metrics_report.py
     python runs/exp07_fourier_hires/metrics_report.py --benchmark
     python runs/exp07_fourier_hires/metrics_report.py --only A_full E_exp02_like
@@ -27,20 +27,20 @@ import pandas as pd
 from ablation import VARIANTS, build_qs, deep_merge, make_loaders
 from config import CONFIG
 
-# 보고서에서 previous/current로 부르는 쌍. 나머지는 ablation 요소로만 등장한다.
+# the pair called previous/current in the report. The rest appear only as ablation factors.
 REPORT_LABELS = {"E_exp02_like": "previous (exp02-like)", "A_full": "current (exp07)"}
 
-# (csv 접두사, 표시 이름, 단위)
+# (csv prefix, display name, unit)
 PARAMS = [
     ("Thickness", "Thickness", "Å"),
     ("Roughness", "Roughness", "Å"),
     ("SLD", "SLD", "1e-6 Å⁻²"),
 ]
 
-# 두께 구간. config의 param_ranges (10-1200 Å)를 물리적으로 의미 있는 구간으로 나눈다.
+# thickness bins: the config param_ranges (10-1200 A) split into physically meaningful ranges.
 THICKNESS_BANDS = [(10, 50), (50, 100), (100, 300), (300, 600), (600, 1200)]
 
-# 허용오차 정의. 상대(%)와 절대(단위) 중 파라미터 성격에 맞는 쪽을 쓴다.
+# tolerance definition: relative (%) or absolute (unit), whichever suits the parameter.
 TOLERANCES = {
     "Thickness": [("rel", 1.0), ("rel", 5.0), ("rel", 10.0), ("abs", 5.0), ("abs", 10.0)],
     "Roughness": [("abs", 0.5), ("abs", 1.0), ("abs", 2.0)],
@@ -77,7 +77,7 @@ def core_metrics(true: np.ndarray, pred: np.ndarray) -> dict:
 def load_eval(var_dir: Path, tag: str) -> pd.DataFrame | None:
     path = var_dir / f"evaluation_results_{tag}.csv"
     if not path.exists():
-        # 학습 직후 저장되는 무접미사 파일(clean 도메인)을 대체로 허용
+        # also accept the suffix-less file written right after training (clean domain)
         alt = var_dir / "evaluation_results.csv"
         if tag == "clean" and alt.exists():
             return pd.read_csv(alt)
@@ -85,9 +85,6 @@ def load_eval(var_dir: Path, tag: str) -> pd.DataFrame | None:
     return pd.read_csv(path)
 
 
-# -----------------------------------------------------------------------------
-# 표 만들기
-# -----------------------------------------------------------------------------
 def build_extended(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     rows = []
     for variant, df in dfs.items():
@@ -142,11 +139,8 @@ def build_by_thickness(dfs: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# -----------------------------------------------------------------------------
-# 비용 / 속도
-# -----------------------------------------------------------------------------
 def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path, n_batches: int = 30) -> dict:
-    """test 로더로 실제 추론 처리량을 잰다. 데이터 로딩을 빼고 순수 forward만 잰다."""
+    """Measure real inference throughput on the test loader: forward only, data loading excluded."""
     import time
 
     import torch
@@ -167,7 +161,7 @@ def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path, n_batch
 
     (loader,) = make_loaders(qs, cfg, h5_file, var_dir / "stats.pt", modes=["test"], num_workers=0)
 
-    # 배치를 미리 GPU로 올려두고 forward만 반복 측정한다
+    # move the batches to the GPU beforehand and time only the forward passes
     batches = []
     for i, (X, _) in enumerate(loader):
         batches.append(X.to(device))
@@ -177,7 +171,7 @@ def benchmark_inference(variant: str, ablation_dir: Path, h5_file: Path, n_batch
         return {}
 
     with torch.inference_mode():
-        for _ in range(3):  # warm-up (cudnn autotune 포함)
+        for _ in range(3):  # warm-up (includes cudnn autotune)
             model(batches[0])
         if device.type == "cuda":
             torch.cuda.synchronize()
@@ -232,7 +226,7 @@ def build_cost(variants: list[str], ablation_dir: Path, h5_file: Path, benchmark
                 if col in summary.columns:
                     row[col] = s[col]
 
-        # ablation_summary에 train_seconds가 없는 구버전 실행분은 로그 파일에서 보완
+        # older runs without train_seconds in ablation_summary are filled in from the log file
         time_log = var_dir / "train_time.json"
         if row.get("train_seconds") is None and time_log.exists():
             row["train_seconds"] = json.loads(time_log.read_text())["cumulative_seconds"]
@@ -247,11 +241,8 @@ def build_cost(variants: list[str], ablation_dir: Path, h5_file: Path, benchmark
     return pd.DataFrame(rows)
 
 
-# -----------------------------------------------------------------------------
-# 마크다운 리포트
-# -----------------------------------------------------------------------------
 def fmt(df: pd.DataFrame, floatfmt: str = "{:.4g}") -> str:
-    """pandas.to_markdown은 tabulate 의존이라 직접 만든다."""
+    """pandas.to_markdown depends on tabulate, so the table is built by hand."""
     out = df.copy()
     for c in out.columns:
         if pd.api.types.is_float_dtype(out[c]):

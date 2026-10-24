@@ -7,17 +7,13 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 
-# ------------------------------
-# Helper: 보간하여 모델의 q-grid에 맞추기
-# ------------------------------
 def resample_spectra(meas_q: np.ndarray, meas_I: np.ndarray, target_q: np.ndarray) -> np.ndarray:
     """
-    meas_q: (M,) 실제 측정 q
-    meas_I: (M,) 또는 (N_samples, M) 측정 intensity
-    target_q: (Q,) 모델 q-grid
-    반환: (Q,) 또는 (N_samples, Q)
+    meas_q: (M,) measured q
+    meas_I: (M,) or (N_samples, M) measured intensity
+    target_q: (Q,) model q-grid
+    Returns: (Q,) or (N_samples, Q)
     """
-    # 만약 여러 샘플이면 first axis가 샘플로 오게 정리
     meas_I = np.atleast_2d(meas_I)
     out = np.empty((meas_I.shape[0], target_q.size), dtype=float)
     for i, row in enumerate(meas_I):
@@ -27,9 +23,6 @@ def resample_spectra(meas_q: np.ndarray, meas_I: np.ndarray, target_q: np.ndarra
     return out
 
 
-# ------------------------------
-# Helper: stats 불러와 파라미터 정규화/역정규화
-# ------------------------------
 def load_stats(stats_path: Path) -> tuple[np.ndarray, np.ndarray]:
     st = torch.load(stats_path)
     param_mean = st["param_mean"].numpy() if isinstance(st["param_mean"], torch.Tensor) else np.array(st["param_mean"])
@@ -45,9 +38,6 @@ def denormalize_params(params_norm: np.ndarray, param_mean: np.ndarray, param_st
     return params_norm * param_std + param_mean
 
 
-# ------------------------------
-# Create DataLoader from raw measured arrays
-# ------------------------------
 def make_dataloader_from_arrays(
     measured_q: np.ndarray,
     measured_I: np.ndarray,  # shape (N, M) or (M,)
@@ -87,9 +77,6 @@ def make_dataloader_from_arrays(
     return loader, param_mean, param_std
 
 
-# ------------------------------
-# Main: evaluate and additional visualizations
-# ------------------------------
 def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_prefix: Path, device=None):
     device = device or (torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"))
     model = model.to(device)
@@ -178,34 +165,24 @@ def evaluate_with_plots(model, data_loader: DataLoader, stats_path: Path, out_pr
     return preds, targets, errors
 
 
-# ------------------------------
-# Example usage block (사용자 환경에 맞게 수정)
-# ------------------------------
 if __name__ == "__main__":
     from config import CONFIG
     from model import XRR1DRegressor
 
-    # -----------------------------
-    # 경로 설정
-    # -----------------------------
     # The run main.py trains, not another experiment's folder.
     exp_dir = CONFIG["base_dir"] / CONFIG["exp_name"]
     stats_file = exp_dir / "stats.pt"
     checkpoint_file = exp_dir / "best.pt"
     out_dir = exp_dir / "eval_real"
 
-    # 실제 측정 데이터 디렉토리
     real_data_dir = Path(os.environ["DATA"], r"XRR_AI\data\one_layer\real_tester")
     measured_q = np.load(real_data_dir / "measured_q.npy")  # (M,)
-    measured_I = np.load(real_data_dir / "measured_I.npy")  # (N, M) 또는 (M,)
+    measured_I = np.load(real_data_dir / "measured_I.npy")  # (N, M) or (M,)
     try:
         measured_params = np.load(real_data_dir / "measured_params.npy")  # (N, 3)
     except FileNotFoundError:
         measured_params = None
 
-    # -----------------------------
-    # 모델 불러오기
-    # -----------------------------
     ckpt = torch.load(checkpoint_file, map_location="cpu")
     config = ckpt["config"]["model_args"]
 
@@ -213,9 +190,6 @@ if __name__ == "__main__":
     model.load_state_dict(ckpt["model_state_dict"])
     model = model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
-    # -----------------------------
-    # 학습 때 q-grid 재생성
-    # -----------------------------
     q_points = 200
     wavelength = 1.54  # Å
     tth_min = 1.0  # deg
@@ -226,9 +200,6 @@ if __name__ == "__main__":
     theta = np.deg2rad(tth_deg / 2)
     q_target = 4 * np.pi / wavelength * np.sin(theta)  # Å^-1
 
-    # -----------------------------
-    # dataloader 생성
-    # -----------------------------
     loader, mean, std = make_dataloader_from_arrays(
         measured_q=measured_q,
         measured_I=measured_I,
@@ -238,7 +209,4 @@ if __name__ == "__main__":
         batch_size=64,
     )
 
-    # -----------------------------
-    # 평가
-    # -----------------------------
     preds, targets, errors = evaluate_with_plots(model, loader, stats_file, out_dir)

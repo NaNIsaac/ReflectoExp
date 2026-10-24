@@ -34,9 +34,6 @@ class ParamQuantizer:
         self.roughness_bins = np.linspace(0.0, 10.0, 21) if roughness_bins is None else np.asarray(roughness_bins)
         self.sld_bins = np.linspace(1.0, 6.0, 26) if sld_bins is None else np.asarray(sld_bins)
 
-    # --------------------------
-    # Persistence
-    # --------------------------
     def state_dict(self):
         return {
             "thickness_bins": self.thickness_bins.astype(float).tolist(),
@@ -49,9 +46,6 @@ class ParamQuantizer:
         self.roughness_bins = np.asarray(state["roughness_bins"], dtype=float)
         self.sld_bins = np.asarray(state["sld_bins"], dtype=float)
 
-    # --------------------------
-    # Fitting helper
-    # --------------------------
     def fit_from_dataset(self, h5_path: str, sample_n: int = 1000, rng_seed: int = 0):
         """Estimate reasonable bins from real dataset values (sample subset)."""
         rng = np.random.default_rng(rng_seed)
@@ -83,9 +77,6 @@ class ParamQuantizer:
         self.roughness_bins = np.linspace(max(0.0, rvals.min()), rvals.max(), 21)
         self.sld_bins = np.linspace(svals.min(), svals.max(), 26)
 
-    # --------------------------
-    # Quantize API
-    # --------------------------
     @staticmethod
     def _quantize_array(vals: np.ndarray, bins: np.ndarray) -> np.ndarray:
         """Vectorized quantization. Returns indices clipped to valid range [0, len(bins)-2]."""
@@ -160,9 +151,6 @@ class DatasetH5(Dataset):
     def __len__(self) -> int:
         return int(self._length)
 
-    # --------------------------
-    # HDF5 access helpers
-    # --------------------------
     def _ensure_open(self) -> h5py.File:
         """Open file per-process (safe with num_workers spawn/fork)."""
         if self._hf is None:
@@ -190,9 +178,6 @@ class DatasetH5(Dataset):
             return 0.0, 1.0
         return float(arr.mean()), float(arr.std() if arr.std() > 0 else 1.0)
 
-    # --------------------------
-    # Data conversion
-    # --------------------------
     def _process_reflectivity(self, refl: np.ndarray) -> np.ndarray:
         """Apply log-scaling, downsampling, normalization and return float32 array."""
         arr = np.asarray(refl, dtype=float).ravel()

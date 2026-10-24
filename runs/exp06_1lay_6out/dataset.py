@@ -15,7 +15,6 @@ class XRRPreprocessor:
     """
 
     def __init__(self, qs: np.ndarray, stats_file: Path | str | None = None, device: torch.device = torch.device("cpu")):
-        # 1. Set up Master Grid
         self.target_q = qs
         self.device = device
         self.param_mean = None
@@ -245,18 +244,16 @@ class XRR1LayerDataset(Dataset):
         if slack <= 0:
             return R_raw, q_raw
 
-        # 1. Front Crop: Limit to max 0.04 to protect critical angle (0.03~0.04)
-        # Crop up to the smaller of 20% of slack or 0.04
+        # front crop: at most 0.04, to protect the critical angle (0.03-0.04)
         max_front_limit = 0.04
         front_crop_limit = min(slack * 0.2, max_front_limit)
 
         crop_start = np.random.uniform(0, front_crop_limit)
 
-        # 2. Back Crop: Allocate remaining slack to back cropping
+        # back crop: spend the remaining slack
         remaining_slack = slack - crop_start
         crop_end = np.random.uniform(0, remaining_slack)
 
-        # 3. Slicing
         new_min = current_min + crop_start
         new_max = current_max - crop_end
 

@@ -32,80 +32,65 @@ class XRRAugmentations:
 
     def _gauss_footprint(self, theta_deg: np.ndarray, beam_w: float, sample_len: float) -> np.ndarray:
         """
-        GenX의 GaussIntensity 로직을 NumPy용으로 구현
-        theta_deg: 입사각 (도)
-        beam_w: 빔의 표준편차 (mm)
-        sample_len: 시료 길이 (mm)
+        GenX GaussIntensity logic implemented for NumPy.
+        theta_deg: incidence angle (deg)
+        beam_w: standard deviation of the beam (mm)
+        sample_len: sample length (mm)
         """
-        # GenX 로직: GaussIntensity(alpha, s1, s2, sigma_x)
-        # s1 = s2 = sample_len / 2.0 (시료 중심 기준 대칭 가정)
+        # GenX logic: GaussIntensity(alpha, s1, s2, sigma_x) with s1 = s2 = sample_len / 2 (symmetric about the sample center)
 
         rad = np.pi / 180.0
         sqrt2 = np.sqrt(2.0)
 
-        # 빔과 시료가 이루는 투영 각도 계산
         sinalpha = np.sin(theta_deg * rad)
 
-        # 0으로 나누기 방지 (theta=0일 때)
+        # avoid division by zero at theta = 0
         sinalpha = np.maximum(sinalpha, 1e-9)
 
         s_half = sample_len / 2.0
 
-        # Gaussian Beam Spill-over 계산 (GenX 수식)
-        # 빔이 시료 영역 [-s_half, +s_half] 안에 들어오는 비율 적분
+        # Gaussian beam spill-over (GenX formula): fraction of the beam inside [-s_half, +s_half]
         common = sinalpha / (sqrt2 * beam_w)
 
-        # erf는 기함수이므로 erf(s * common) + erf(s * common) = 2 * erf(...)
-        # 결과 = (2 * erf(...)) / 2.0 = erf(...)
+        # erf is odd, so the two erf terms are equal and (2 * erf(...)) / 2 = erf(...)
         correction = erf(s_half * common)
 
         return correction
 
     def apply_footprint(self, q: np.ndarray, R: np.ndarray) -> np.ndarray:
-        """랜덤한 빔 폭과 시료 크기를 적용하여 저각 강도 감쇄 시뮬레이션"""
+        """Apply a random beam width and sample size to simulate the low-angle intensity loss."""
         beam_w = np.random.uniform(*self.beam_width_range)
         sample_len = np.random.uniform(*self.sample_len_range)
 
-        # q -> theta 변환 (X-ray 파장 1.54A 기준)
+        # q -> theta (X-ray wavelength 1.54 A)
         # q = 4pi/lambda * sin(theta) => theta = arcsin(q * lambda / 4pi)
         wavelength = 1.54
         sin_theta = q * wavelength / (4 * np.pi)
-        # arcsin 범위 안전장치 (-1 ~ 1)
+        # keep the arcsin argument in range
         sin_theta = np.clip(sin_theta, 0, 1)
         theta_deg = np.degrees(np.arcsin(sin_theta))
 
-        # GenX 스타일 Gaussian Footprint 보정 계수 계산
         foocor = self._gauss_footprint(theta_deg, beam_w, sample_len)
 
         return R * foocor
 
     def __call__(self, q: np.ndarray, R: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        # 확률적으로 Augmentation 적용 여부 결정
         if np.random.rand() > self.prob:
             return q, R
 
         R_aug = R.copy()
 
-        # -----------------------------------------------------------
-        # [Step 1] Geometric Footprint (물리적 현상: 가장 먼저 발생)
-        # -----------------------------------------------------------
+        # order follows the physics: footprint, instrument resolution, detector noise and scale, then q misalignment
         if self.do_footprint:
             R_aug = self.apply_footprint(q, R_aug)
 
-        # -----------------------------------------------------------
-        # [Step 2] Instrument Resolution (기기적 현상: 광학계 통과)
-        # -----------------------------------------------------------
-        # 풋프린트로 깎인 곡선이 해상도에 의해 뭉개져야 자연스러움
+        # resolution smears the footprint-cut curve (physical order)
         res_sigma_q = np.random.uniform(*self.res_sigma_range)
         sigma_px = res_sigma_q / self.delta_q
 
         # Gaussian Smearing (Convolution)
         if sigma_px > 0:
             R_aug = gaussian_filter1d(R_aug, sigma=sigma_px, mode="nearest")
-
-        # -----------------------------------------------------------
-        # [Step 3] Detectors & Electronics (노이즈 및 스케일)
-        # -----------------------------------------------------------
 
         # Global Scaling (I0 fluctuation)
         scale = np.random.uniform(1 - self.intensity_noise_scale, 1 + self.intensity_noise_scale)
@@ -118,16 +103,14 @@ class XRRAugmentations:
         R_aug = R_aug + np.abs(bg)
 
         # Poisson Noise (Counting statistics - Shot noise)
-        # 신호가 강한 곳은 노이즈도 큼 (Signal dependent)
+        # signal-dependent noise: a stronger signal has more noise
         s_rand = pow(10, np.random.uniform(5, 8))
         R_aug = apply_poisson_noise(R_aug, s=s_rand)
 
-        # -----------------------------------------------------------
-        # [Step 4] Q-axis Misalignment (Calibration error)
-        # -----------------------------------------------------------
+        # q-axis misalignment (calibration error)
         if self.q_shift_sigma > 0:
             q_shift = np.random.normal(0, self.q_shift_sigma)
-            # q축이 밀리면 데이터는 반대 방향으로 이동 효과
+            # a shifted q axis moves the data the opposite way
             R_aug = np.interp(q, q + q_shift, R_aug, left=R_aug[0], right=R_aug[-1])
 
         return q, R_aug

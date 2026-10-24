@@ -46,13 +46,13 @@ CONFIG = {
         "intensity_scale": 0.25,
         "q_shift_sigma": 0.004,
         "res_sigma_range": (0.0001, 0.006),
-        # 평가셋에도 augmentation을 적용할지 여부.
-        # False = clean simulation으로 평가 (실측 대비 낙관적)
-        # True  = 측정 노이즈가 실린 조건에서 평가
+        # whether augmentation is also applied to the eval sets
+        # False: evaluate on clean simulation (optimistic compared with measured data)
+        # True: evaluate with measurement noise
         "augment_eval": False,
     },
     "debug": {
-        # 전 레이어 NaN/Inf 검사 훅. 학습 속도를 크게 떨어뜨리므로 기본 비활성.
+        # hook that checks every layer for NaN/Inf; off by default because it slows training a lot
         "hooks": False,
     },
 }

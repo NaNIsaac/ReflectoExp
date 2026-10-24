@@ -1,19 +1,19 @@
 """
-exp07 요소별 기여도 분해(Ablation) 러너.
+Ablation runner that separates the contribution of each exp07 improvement.
 
-exp02와 exp07은 시뮬레이터/q-grid/층구조/라벨 범위가 모두 달라 수치 직접 비교가
-성립하지 않는다. 따라서 동일 데이터셋(exp07 h5) 위에서 개선 요소를 하나씩 끄고
-학습하여 각 요소의 기여도를 분리 측정한다.
+exp02 and exp07 differ in simulator, q-grid, layer structure and label ranges, so their
+numbers cannot be compared directly. Instead the improvements are switched off one at a
+time on the same dataset (the exp07 h5) and each variant is trained separately.
 
-측정 요소:
+Factors measured:
   - Fourier feature   (model.use_fourier)
   - Physics augmentation (training.augment)
-  - q 해상도          (simulation.q_points, 원본 h5에서 재샘플링)
+  - q resolution      (simulation.q_points, resampled from the source h5)
 
-주의: q_points를 줄여도 데이터 재생성은 불필요하다. XRRPreprocessor가 원본 q 그리드에서
-target_q로 보간하므로, 2000점 h5 하나로 저해상도 조건을 만들 수 있다.
+Regenerating data is not needed when q_points is reduced: XRRPreprocessor interpolates from
+the source q grid to target_q, so one 2000-point h5 yields the low-resolution conditions.
 
-사용:
+Usage:
     python runs/exp07_fourier_hires/ablation.py --dry-run
     python runs/exp07_fourier_hires/ablation.py
     python runs/exp07_fourier_hires/ablation.py --only A_full C_no_augment --epochs 5
@@ -37,9 +37,7 @@ from torch.utils.data import DataLoader
 from train import Trainer
 from xrr_model import XRRPhysicsModel
 
-# -----------------------------------------------------------------------------
-# Variant 정의: 기준(CONFIG)에 덮어쓸 부분만 기술
-# -----------------------------------------------------------------------------
+# variants list only what overrides the base CONFIG
 VARIANTS: dict[str, dict] = {
     "A_full": {},
     "B_no_fourier": {
@@ -63,7 +61,7 @@ PARAM_NAMES = ["Thickness (Å)", "Roughness (Å)", r"SLD (10$^{-6}$ Å$^{-2}$)"]
 
 
 def deep_merge(base: dict, override: dict) -> dict:
-    """base의 깊은 복사본에 override를 재귀 병합"""
+    """Recursively merge override into a deep copy of base."""
     out = copy.deepcopy(base)
     for key, value in override.items():
         if isinstance(value, dict) and isinstance(out.get(key), dict):
@@ -112,7 +110,7 @@ def make_loaders(
         modes = ["train", "val", "test"]
     if augment_eval is not None:
         common["augment_eval"] = augment_eval
-        # augment_eval을 켜려면 augmentation 자체가 활성이어야 한다
+        # augment_eval needs augmentation itself to be active
         common["augment"] = common["augment"] or augment_eval
 
     loaders = []
@@ -153,11 +151,11 @@ def steps_per_epoch(loader: DataLoader) -> int:
 
 def resolve_epochs(cfg: dict, train_loader: DataLoader, budget_steps: int | None, epochs_override: int | None) -> int:
     """
-    Variant마다 epoch당 step 수가 다르므로(augmentation expand_factor 차이),
-    epoch이 아닌 optimizer step 수를 맞춰야 공정 비교가 된다.
+    Variants differ in steps per epoch (augmentation expand_factor), so a fair comparison
+    matches the number of optimizer steps, not epochs.
 
-    epochs_override는 스모크 테스트 전용 - 공정 비교를 깨뜨린다.
-    학습 예산을 줄이려면 --baseline-epochs를 쓸 것.
+    epochs_override is for smoke tests only and breaks the fair comparison.
+    To cut the training budget use --baseline-epochs.
     """
     if epochs_override is not None:
         return epochs_override
@@ -170,9 +168,9 @@ def resolve_epochs(cfg: dict, train_loader: DataLoader, budget_steps: int | None
 
 def resolve_patience(cfg: dict, train_loader: DataLoader, budget_steps: int | None, baseline_spe: int | None) -> int:
     """
-    early stopping patience도 epoch 단위이므로 step 예산을 맞추면 함께 환산해야 한다.
-    그렇지 않으면 epoch당 step이 적은 variant(augmentation 없음)가 훨씬 이른
-    시점에 중단되어 비교가 오염된다.
+    Early-stopping patience is also in epochs, so it must be converted along with the step
+    budget. Otherwise a variant with fewer steps per epoch (no augmentation) stops much earlier
+    and the comparison is contaminated.
     """
     patience = cfg["training"]["patience"]
     if budget_steps is None or baseline_spe is None:
@@ -186,15 +184,15 @@ def eval_variant(
     name: str, cfg: dict, var_dir: Path, h5_file: Path, stats_file: Path, qs: np.ndarray, checkpoint_file: Path, augment_eval: bool, tag: str
 ) -> dict:
     """
-    학습 없이 저장된 best.pt로 평가만 수행.
+    Evaluate with the saved best.pt, without training.
 
-    augment_eval=True면 측정 노이즈가 실린 test set에서 평가한다. clean simulation
-    평가는 augmentation 없이 학습한 variant에게 유리하게 편향되므로(학습/평가 분포 일치),
-    두 도메인 모두에서 재는 것이 필요하다.
+    With augment_eval=True the test set carries measurement noise. Clean-simulation evaluation
+    is biased in favor of variants trained without augmentation (train and eval distributions
+    match), so both domains need to be measured.
 
-    노이즈는 __getitem__마다 무작위로 생성되므로, variant 간 비교가 성립하려면
-    동일한 노이즈 시퀀스를 써야 한다. numpy 전역 상태는 DataLoader worker 프로세스로
-    결정론적으로 전달되지 않으므로 num_workers=0으로 고정하고 시드를 다시 심는다.
+    Noise is drawn randomly in each __getitem__, so variants need the same noise sequence to be
+    comparable. numpy global state is not passed deterministically to DataLoader workers, so
+    num_workers=0 is fixed and the seed is set again.
     """
     if not checkpoint_file.exists():
         print(f"⚠️  Skipping {name}: checkpoint not found at {checkpoint_file}")
@@ -310,7 +308,7 @@ def run_variant(
     trainer.train(epochs, resume_from=resume_path if resume_path.exists() else None)
     train_seconds = time.perf_counter() - t0
 
-    # 재개 학습이면 이번 호출분만 잰다. 누적 시간은 이전 실행분을 더해 보관한다.
+    # on a resumed run only this call is timed; the time of earlier runs is added and stored
     time_log = var_dir / "train_time.json"
     prev_seconds = 0.0
     if time_log.exists():
@@ -377,8 +375,8 @@ def run_variant(
 
 def merge_summary(rows: list[dict], out_csv: Path) -> pd.DataFrame:
     """
-    --only로 일부 variant만 돌려도 기존 summary의 나머지 행을 잃지 않도록 병합한다.
-    이번에 돌린 variant는 새 결과로 대체하고, 나머지는 그대로 둔다.
+    Merge so that running only some variants with --only does not lose the other rows of the
+    existing summary. Variants run now replace their rows; the rest are kept.
     """
     df_new = pd.DataFrame(rows)
     if out_csv.exists():
@@ -461,7 +459,7 @@ def main():
 
     if args.expand_factor is not None:
         for cfg in cfgs.values():
-            # augmentation을 쓰지 않는 variant는 expand가 무의미하므로 1로 고정된 채 둔다
+            # variants without augmentation keep expand_factor at 1, since expanding is meaningless for them
             if cfg["training"]["augment"]:
                 cfg["training"]["expand_factor"] = args.expand_factor
         print(f"[Override] expand_factor = {args.expand_factor} (augmented variants only)")
@@ -476,17 +474,17 @@ def main():
         print("\n[Dry run] 학습을 수행하지 않고 종료합니다.")
         return
 
-    # 원본 데이터는 기준 config(2000점)로 1회만 생성해 모든 variant가 공유
+    # source data is generated once with the base config (2000 points) and shared by all variants
     base_qs = build_qs(CONFIG["simulation"])
     if not h5_file.exists():
         print(f"📦 Source dataset missing. Generating at {h5_file} ...")
         simulate.generate_1layer_data(base_qs, CONFIG, h5_file)
 
-    # step 예산 산정: 기준 variant의 (baseline epochs × steps/epoch)
+    # step budget: baseline epochs x steps per epoch of the baseline variant
     budget_steps = None
     baseline_spe = None
     if args.budget_mode == "steps" and args.epochs is None and not args.eval_only:
-        # expand_factor 덮어쓰기가 적용된 config를 그대로 사용해야 예산이 어긋나지 않음
+        # use the config with the expand_factor override applied, or the budget will not match
         base_cfg = cfgs.get(args.baseline)
         if base_cfg is None:
             base_cfg = deep_merge(CONFIG, VARIANTS[args.baseline])
@@ -539,7 +537,7 @@ def main():
         )
         rows.append(row)
 
-        # 매 variant마다 중간 저장 (중단 대비)
+        # save after every variant, in case of interruption
         df = merge_summary(rows, out_csv)
         print(f"[Save] Ablation summary → {out_csv}")
 
@@ -549,7 +547,7 @@ def main():
     cols = ["variant", "eval_domain", "q_points", "use_fourier", "augment", "params", "Thickness_MAE", "Roughness_MAE", "SLD_MAE", "Thickness_R2"]
     print(df[[c for c in cols if c in df.columns]].to_string(index=False))
     print("=" * 100)
-    # json은 merge_summary가 csv와 함께 이미 기록했다
+    # the json is already written by merge_summary together with the csv
 
 
 if __name__ == "__main__":
