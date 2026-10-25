@@ -6,7 +6,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 from refnx.reflect import SLD, Footprint, ReflectModel
-from refnx.reflect.structure import Stack, Structure
+from refnx.reflect.structure import Structure
 from tqdm import tqdm
 
 from reflecto_exp.simulate.noise import add_noise
@@ -42,16 +42,11 @@ def tth2q[T: (float, np.ndarray)](tth: T, wavelen: float = 1.54) -> T:
 
 
 def build_structure(params: list[ParamSet]) -> Structure:
-    air = SLD(0.0, name="Air")
-    substrate = SLD(20, name="Substrate")
-
-    stack = Stack(name="MultiLayer", repeats=len(params))
-
+    """Air, the layers once each in the given order (first under the air), substrate."""
+    structure = SLD(0.0, name="Air")(0, 0)
     for param in params:
-        mat = SLD(param.sld, name=f"SLD={param.sld}")
-        stack.append(mat(param.thickness, param.roughness))
-
-    return air(0, 0) | stack | substrate(0, 3)
+        structure |= SLD(param.sld, name=f"SLD={param.sld}")(param.thickness, param.roughness)
+    return structure | SLD(20, name="Substrate")(0, 3)
 
 
 def calc_refl(structure: Structure, q: np.ndarray, wavelen: float = 1.54, is_footprint: bool = True) -> np.ndarray:
