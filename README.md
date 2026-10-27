@@ -6,7 +6,7 @@ Experiment scripts for training neural networks that predict thin-film thickness
 
 Each folder under `runs/` is one experiment, most with their own config, simulation, dataset, model, training and evaluation (exp01 and exp03 lack some of these, see the table). Shared simulation and physics helpers live in the `reflecto_exp` package under `src/`.
 
-This is one of the XRR research branches. [Reflecto](https://github.com/NaNIsaac/Reflecto) packages exp07 weights (as of December 2025) with a GenX refinement, [XRefine](https://github.com/NaNIsaac/XRefine) started from `src/reflecto_exp/simulate/torch_engine/` (both 2025-12-30), and [ReflectoLearn](https://github.com/NaNIsaac/ReflectoLearn) took the exp07 model and training code in June 2026. exp07 kept being developed here afterwards (ablation, August 2026). None of these later repositories has been compared with the results here.
+This is one of the XRR research branches. [Reflecto](https://github.com/NaNIsaac/Reflecto) packages exp07 weights (as of December 2025) with a GenX refinement, [XRefine](https://github.com/NaNIsaac/XRefine) started from `src/reflecto_exp/simulate/torch_engine/` (both 2025-12-30), and [ReflectoLearn](https://github.com/NaNIsaac-Research/ReflectoLearn) took the exp07 model and training code in June 2026. exp07 kept being developed here afterwards (ablation, August 2026). None of these later repositories has been compared with the results here.
 
 ## Install
 
