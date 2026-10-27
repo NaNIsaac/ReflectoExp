@@ -54,7 +54,7 @@ def get_f(sld_1e6: float) -> complex:
 def build_sample(film_params: list[ParamSet], sio2_param: ParamSet, sub_param: ParamSet | None = None) -> Sample:
     """
     Create GenX Sample with explicit Si Substrate.
-    Structure: Si Substrate -> Film -> Surface SiO2 -> Ambient
+    Structure: Si substrate -> SiO2 -> film(s) -> ambient (GenX lists a stack from the substrate up)
     """
     if sub_param is None:
         sub_param = ParamSet(0, 3, 20.1)

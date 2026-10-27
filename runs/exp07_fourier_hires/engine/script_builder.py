@@ -74,7 +74,8 @@ Sub = Layer(d=0, f=to_f(20.07), dens=1, sigma=3.0)
 Film = Layer(d=v.f_d, sigma=v.f_sig, f=to_f(v.f_sld), dens=1)
 SiO2 = Layer(d=v.s_d, sigma=v.s_sig, f=to_f(v.s_sld), dens=1)
 
-sample = Sample(Stacks=[Stack(Layers=[Film, SiO2])], Ambient=Amb, Substrate=Sub)
+# GenX lists a stack from the substrate up: Si / SiO2 / film / ambient, as in simul_genx
+sample = Sample(Stacks=[Stack(Layers=[SiO2, Film])], Ambient=Amb, Substrate=Sub)
 
 # Instrument Definitions
 inst = Instrument(
